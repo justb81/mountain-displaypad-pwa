@@ -15,7 +15,7 @@ const STORAGE_KEY = 'displaypad.keymap.v1';
 function defaultKey(index: number): KeyConfig {
 	return {
 		label: `Key ${index + 1}`,
-		face: { type: 'color', color: '#1e293b' },
+		face: { type: 'color', color: '#000000' },
 		action: { type: 'none' }
 	};
 }
