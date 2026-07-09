@@ -10,6 +10,20 @@
 	}
 
 	let { selected, onselect }: Props = $props();
+
+	function ondropkey(from: number, to: number, copy: boolean) {
+		if (from === to) return;
+		if (copy) {
+			keymap.copy(from, to);
+			if (connection.status === 'connected') void connection.applyKey(to);
+		} else {
+			keymap.swap(from, to);
+			if (connection.status === 'connected') {
+				void connection.applyKey(from);
+				void connection.applyKey(to);
+			}
+		}
+	}
 </script>
 
 <div
@@ -23,6 +37,7 @@
 			pressed={connection.pressed[index]}
 			selected={selected === index}
 			{onselect}
+			{ondropkey}
 		/>
 	{/each}
 </div>

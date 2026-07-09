@@ -56,6 +56,6 @@
 			</button>
 			<ProfileTools />
 		</div>
-		<KeyInspector index={selected} />
+		<KeyInspector index={selected} onmove={(i) => (selected = i)} />
 	</main>
 </div>
