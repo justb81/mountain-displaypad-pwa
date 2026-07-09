@@ -6,6 +6,13 @@
 // SvelteKit auto-registers this file in production builds. It precaches the app
 // shell + static assets for offline use and serves them cache-first, so the
 // configurator keeps working without a network connection.
+//
+// A newly installed worker deliberately does NOT call skipWaiting() itself —
+// it sits in the "waiting" state so the already-open page keeps running on the
+// version it loaded, until the user opts in via the update banner (driven by
+// `$lib/state/update.svelte.ts`), which posts SKIP_WAITING below. Without this,
+// an update can silently take over mid-session with no way for the page to
+// know its already-executing JS is stale.
 
 import { build, files, version } from '$service-worker';
 
@@ -15,12 +22,11 @@ const CACHE = `displaypad-${version}`;
 const PRECACHE = [...build, ...files];
 
 sw.addEventListener('install', (event) => {
-	event.waitUntil(
-		caches
-			.open(CACHE)
-			.then((cache) => cache.addAll(PRECACHE))
-			.then(() => sw.skipWaiting())
-	);
+	event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
+});
+
+sw.addEventListener('message', (event) => {
+	if (event.data?.type === 'SKIP_WAITING') sw.skipWaiting();
 });
 
 sw.addEventListener('activate', (event) => {

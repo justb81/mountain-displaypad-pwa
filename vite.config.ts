@@ -12,7 +12,10 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			// Register manually instead (see +layout.svelte): dev mode never registers one at
+			// all, so a cache-first worker from a previous build can never mask fresh dev output.
+			serviceWorker: { register: false }
 		})
 	],
 	test: {

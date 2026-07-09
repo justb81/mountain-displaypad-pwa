@@ -43,6 +43,15 @@ class Keymap {
 		this.persist();
 	}
 
+	/** Replace every key at once (e.g. from an imported profile) and persist. */
+	importAll(keys: KeyConfig[]): void {
+		if (keys.length !== NUM_KEYS) {
+			throw new RangeError(`Expected ${NUM_KEYS} keys, got ${keys.length}.`);
+		}
+		this.keys = keys;
+		this.persist();
+	}
+
 	private load(): void {
 		try {
 			const raw = localStorage.getItem(STORAGE_KEY);
