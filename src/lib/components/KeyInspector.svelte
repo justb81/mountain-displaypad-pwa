@@ -104,9 +104,56 @@
 				? { type, url: '' }
 				: type === 'copy-text'
 					? { type, text: '' }
-					: { type: 'none' };
+					: type === 'webhook'
+						? { type, method: 'POST', url: '' }
+						: { type: 'none' };
 		keymap.update(index, { action });
 	}
+
+	/** Merge a patch into the current webhook action (no-op if the action isn't a webhook). */
+	function updateWebhook(patch: Partial<Extract<KeyAction, { type: 'webhook' }>>) {
+		if (config.action.type !== 'webhook') return;
+		keymap.update(index, { action: { ...config.action, ...patch } });
+	}
+
+	// Custom headers are edited as `Name: Value` lines; kept in local state so typing
+	// blank/partial lines stays smooth, and parsed into the action's record on input.
+	let headersText = $state('');
+	$effect(() => {
+		// Re-seed the textarea whenever a different key (or a non-webhook action) is selected.
+		const headers = config.action.type === 'webhook' ? config.action.headers : undefined;
+		headersText = headers
+			? Object.entries(headers)
+					.map(([name, value]) => `${name}: ${value}`)
+					.join('\n')
+			: '';
+	});
+
+	function setHeaders(text: string) {
+		headersText = text;
+		const headers: Record<string, string> = {};
+		for (const line of text.split('\n')) {
+			const colon = line.indexOf(':');
+			if (colon === -1) continue;
+			const name = line.slice(0, colon).trim();
+			const value = line.slice(colon + 1).trim();
+			if (name) headers[name] = value;
+		}
+		updateWebhook({ headers: Object.keys(headers).length ? headers : undefined });
+	}
+
+	/** Inline JSON-parse validation for the POST body — null when empty or valid. */
+	const bodyError = $derived.by(() => {
+		if (config.action.type !== 'webhook' || config.action.method !== 'POST') return null;
+		const body = config.action.body;
+		if (!body || !body.trim()) return null;
+		try {
+			JSON.parse(body);
+			return null;
+		} catch (err) {
+			return err instanceof Error ? err.message : String(err);
+		}
+	});
 </script>
 
 <section class="flex flex-col gap-4 rounded-2xl bg-slate-800 p-5">
@@ -289,6 +336,7 @@
 			<option value="none">Do nothing</option>
 			<option value="open-url">Open URL</option>
 			<option value="copy-text">Copy text</option>
+			<option value="webhook">Webhook (HTTP request)</option>
 		</select>
 	</label>
 
@@ -308,5 +356,73 @@
 			oninput={(e) =>
 				keymap.update(index, { action: { type: 'copy-text', text: e.currentTarget.value } })}
 		/>
+	{:else if config.action.type === 'webhook'}
+		<div class="flex flex-col gap-2 text-sm text-slate-300">
+			<div class="flex gap-2">
+				<label class="flex flex-col gap-1">
+					Method
+					<select
+						class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+						value={config.action.method}
+						onchange={(e) => updateWebhook({ method: e.currentTarget.value as 'GET' | 'POST' })}
+					>
+						<option value="GET">GET</option>
+						<option value="POST">POST</option>
+					</select>
+				</label>
+				<label class="flex min-w-0 flex-1 flex-col gap-1">
+					URL
+					<input
+						type="url"
+						placeholder="https://example.com/webhook"
+						value={config.action.url}
+						oninput={(e) => updateWebhook({ url: e.currentTarget.value })}
+						class="min-w-0 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+					/>
+				</label>
+			</div>
+
+			{#if config.action.method === 'POST'}
+				<label class="flex flex-col gap-1">
+					JSON body
+					<textarea
+						rows="4"
+						placeholder={'{\n  "on": true\n}'}
+						value={config.action.body ?? ''}
+						oninput={(e) => updateWebhook({ body: e.currentTarget.value })}
+						class="rounded border border-slate-600 bg-slate-900 px-2 py-1 font-mono text-white"
+					></textarea>
+				</label>
+				{#if bodyError}
+					<p class="text-xs text-rose-400">Invalid JSON: {bodyError}</p>
+				{/if}
+			{/if}
+
+			<label class="flex flex-col gap-1">
+				Custom headers <span class="text-xs text-slate-500"
+					>(one <code>Name: Value</code> per line)</span
+				>
+				<textarea
+					rows="2"
+					placeholder="Authorization: Bearer …"
+					value={headersText}
+					oninput={(e) => setHeaders(e.currentTarget.value)}
+					class="rounded border border-slate-600 bg-slate-900 px-2 py-1 font-mono text-white"
+				></textarea>
+			</label>
+
+			<label class="flex items-center gap-2">
+				<input
+					type="checkbox"
+					checked={config.action.noCors ?? false}
+					onchange={(e) => updateWebhook({ noCors: e.currentTarget.checked || undefined })}
+				/>
+				Fire-and-forget (<code>no-cors</code>) — for trigger-only endpoints without CORS
+			</label>
+			<p class="text-xs text-slate-500">
+				The request goes straight from your browser. A cross-origin endpoint must send CORS headers,
+				or enable <code>no-cors</code> above (the response is then unreadable).
+			</p>
+		</div>
 	{/if}
 </section>

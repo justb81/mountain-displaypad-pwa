@@ -12,7 +12,7 @@ import { hexToRgb } from '$lib/displaypad/image.js';
 import { fetchRemoteFace } from '$lib/displaypad/liveface.js';
 import { rasterize } from '$lib/displaypad/raster.js';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-import type { ConnectionStatus } from '$lib/types.js';
+import type { ConnectionStatus, KeyAction } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
 
 const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
@@ -21,6 +21,8 @@ const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
 const MIN_REFRESH_MINUTES = 1;
 /** Spread otherwise-identical intervals out a bit so they don't all hit their endpoints at once. */
 const REFRESH_JITTER_MS = 2000;
+/** Minimum gap between a key's webhook fires, so a stuck/bouncing key can't hammer an endpoint. */
+const WEBHOOK_MIN_INTERVAL_MS = 500;
 
 class Connection {
 	status = $state<ConnectionStatus>('disconnected');
@@ -35,6 +37,8 @@ class Connection {
 
 	private pad: DisplayPad | null = null;
 	private liveTimers = new Map<number, ReturnType<typeof setInterval>>();
+	/** Last webhook fire time per key, for the {@link WEBHOOK_MIN_INTERVAL_MS} rate-guard. */
+	private lastWebhookAt = new Map<number, number>();
 
 	constructor() {
 		if (!browser) return;
@@ -184,6 +188,40 @@ class Connection {
 		if (action.type === 'open-url' && action.url) window.open(action.url, '_blank', 'noopener');
 		else if (action.type === 'copy-text' && action.text)
 			void navigator.clipboard?.writeText(action.text);
+		else if (action.type === 'webhook' && action.url) this.fireWebhook(index, action);
+	}
+
+	/**
+	 * Fire a key's `webhook` action straight from the browser, fire-and-forget.
+	 * Rate-guarded per key so a bouncing key can't flood the endpoint; failures are
+	 * surfaced via {@link error} rather than thrown (they must not block the key).
+	 */
+	private fireWebhook(index: number, action: Extract<KeyAction, { type: 'webhook' }>): void {
+		const now = Date.now();
+		const last = this.lastWebhookAt.get(index);
+		if (last !== undefined && now - last < WEBHOOK_MIN_INTERVAL_MS) return;
+		this.lastWebhookAt.set(index, now);
+
+		const headers: Record<string, string> = { ...action.headers };
+		const init: RequestInit = { method: action.method, headers };
+		if (action.method === 'POST' && action.body) {
+			const hasContentType = Object.keys(headers).some((h) => h.toLowerCase() === 'content-type');
+			if (!hasContentType) headers['Content-Type'] = 'application/json';
+			init.body = action.body;
+		}
+		if (action.noCors) init.mode = 'no-cors';
+
+		void fetch(action.url, init)
+			.then((res) => {
+				// In no-cors mode the response is opaque (status 0) — nothing to check.
+				if (!action.noCors && !res.ok)
+					this.error = `Webhook (key ${index + 1}) returned HTTP ${res.status}.`;
+			})
+			.catch((err) => {
+				this.error = `Webhook (key ${index + 1}) failed: ${
+					err instanceof Error ? err.message : String(err)
+				}`;
+			});
 	}
 
 	private onClose = (): void => this.teardown();

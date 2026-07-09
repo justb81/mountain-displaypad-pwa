@@ -257,6 +257,11 @@ function bindingFromKeyConfig(
 			`${keyName} ("${key.label}"): "copy text" has no equivalent in the DisplayPad profile format — exported as unassigned.`
 		);
 		action = { type: 'none' };
+	} else if (action.type === 'webhook') {
+		warnings.push(
+			`${keyName} ("${key.label}"): "webhook" has no equivalent in the DisplayPad profile format — exported as unassigned.`
+		);
+		action = { type: 'none' };
 	}
 	const isBrowserAction = action.type === 'open-url';
 

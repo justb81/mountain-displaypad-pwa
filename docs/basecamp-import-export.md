@@ -47,8 +47,9 @@ in text content. This is a stable, boring shape — not arbitrary hand-authored 
 | `action: {type:'open-url', url}`   | `CustomURL`, only when `FunctionType === 'Run browser'`              | The URL is **not** in `FunctionValue` (that literally holds the string `"Run browser"`) — it's in the separate `CustomURL` element. |
 | `action: {type:'none'}` (fallback) | —                                                                    | Every other `FunctionType` (see §4.1).                                                                                              |
 
-`copy-text` has no source in this format at all (Base Camp has no "copy to clipboard" action) —
-it's import-only, never populated from a Base Camp file.
+`copy-text` and `webhook` have no source in this format at all (Base Camp has neither a "copy to
+clipboard" nor an HTTP-request action) — they are browser-only, never populated from a Base Camp
+file, and are exported as unassigned with a warning.
 
 ## 4. Gaps — what genuinely can't round-trip
 
