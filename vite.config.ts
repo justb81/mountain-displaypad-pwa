@@ -15,7 +15,10 @@ export default defineConfig({
 			adapter: adapter(),
 			// Register manually instead (see +layout.svelte): dev mode never registers one at
 			// all, so a cache-first worker from a previous build can never mask fresh dev output.
-			serviceWorker: { register: false }
+			serviceWorker: { register: false },
+			// GitHub Pages serves project sites from a /<repo-name> subpath. The deploy
+			// workflow sets BASE_PATH accordingly; local dev/build defaults to root.
+			paths: { base: (process.env.BASE_PATH ?? '') as '' | `/${string}` }
 		})
 	],
 	test: {

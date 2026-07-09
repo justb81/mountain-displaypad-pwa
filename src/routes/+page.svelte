@@ -28,6 +28,18 @@
 				<input type="checkbox" bind:checked={debug.enabled} />
 				Debug logging
 			</label>
+			<label class="flex items-center gap-2 text-sm text-slate-400">
+				<input type="checkbox" bind:checked={connection.autoApplyOnConnect} />
+				Apply all on (re)connect
+			</label>
+			<button
+				type="button"
+				onclick={() => connection.applyAll()}
+				disabled={connection.status !== 'connected'}
+				class="rounded-md border border-slate-600 px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				Apply All
+			</button>
 			<ConnectButton />
 		</div>
 	</header>

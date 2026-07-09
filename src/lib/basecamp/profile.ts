@@ -77,7 +77,9 @@ export function parseBasecampProfile(xmlText: string): BasecampImportResult {
 	try {
 		doc = parser.parse(xmlText) as { Profile?: RawProfile };
 	} catch (err) {
-		throw new Error(`Not a valid XML file: ${err instanceof Error ? err.message : String(err)}`);
+		throw new Error(`Not a valid XML file: ${err instanceof Error ? err.message : String(err)}`, {
+			cause: err
+		});
 	}
 
 	const profile = doc.Profile;

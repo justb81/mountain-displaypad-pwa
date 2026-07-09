@@ -14,20 +14,35 @@ import { NUM_KEYS } from '$lib/displaypad/protocol.js';
 import type { ConnectionStatus } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
 
+const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
+
 class Connection {
 	status = $state<ConnectionStatus>('disconnected');
 	error = $state<string | null>(null);
 	pressed = $state<boolean[]>(Array(NUM_KEYS).fill(false));
 
+	#autoApplyOnConnect = $state(false);
+
 	private pad: DisplayPad | null = null;
 
 	constructor() {
 		if (!browser) return;
+		if (localStorage.getItem(AUTO_APPLY_STORAGE_KEY) === 'true') this.#autoApplyOnConnect = true;
 		if (!DisplayPad.isSupported()) {
 			this.status = 'unsupported';
 			return;
 		}
 		void this.reconnect();
+	}
+
+	/** Whether every key's face is pushed to the hardware automatically on (re)connect. */
+	get autoApplyOnConnect(): boolean {
+		return this.#autoApplyOnConnect;
+	}
+
+	set autoApplyOnConnect(value: boolean) {
+		this.#autoApplyOnConnect = value;
+		if (browser) localStorage.setItem(AUTO_APPLY_STORAGE_KEY, String(value));
 	}
 
 	/** Prompt for a pad and open it. Key faces are only pushed on explicit apply. */
@@ -73,6 +88,7 @@ class Connection {
 		await pad.open();
 		this.attach(pad);
 		this.status = 'connected';
+		if (this.#autoApplyOnConnect) void this.applyAll();
 	}
 
 	/** Push a single key's configured face onto the hardware. */
