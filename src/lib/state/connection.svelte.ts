@@ -28,6 +28,8 @@ class Connection {
 	pressed = $state<boolean[]>(Array(NUM_KEYS).fill(false));
 	/** Per-key error from the most recent remote-face fetch, `null` once it succeeds. */
 	liveFaceErrors = $state<(string | null)[]>(Array(NUM_KEYS).fill(null));
+	/** Which face a toggle key (one with `secondFace`) is currently showing: 0 = `face`, 1 = `secondFace`. */
+	toggled = $state<boolean[]>(Array(NUM_KEYS).fill(false));
 
 	#autoApplyOnConnect = $state(false);
 
@@ -101,10 +103,11 @@ class Connection {
 		for (let i = 0; i < NUM_KEYS; i++) this.syncLiveTimer(i);
 	}
 
-	/** Push a single key's configured face onto the hardware. */
+	/** Push a single key's configured face onto the hardware (the toggled face, if any). */
 	async applyKey(index: number): Promise<void> {
 		if (!this.pad) return;
-		const { face } = keymap.keys[index];
+		const config = keymap.keys[index];
+		const face = this.toggled[index] && config.secondFace ? config.secondFace : config.face;
 		if (face.type === 'color') {
 			this.pad.setKeyColor(index, ...hexToRgb(face.color));
 			return;
@@ -165,8 +168,13 @@ class Connection {
 		const down = event.type === 'keydown';
 		this.pressed[key] = down;
 		if (down) {
-			const { face } = keymap.keys[key];
-			if (face.type === 'remote' && face.refreshOnPress) void this.applyKey(key);
+			const config = keymap.keys[key];
+			if (config.secondFace) {
+				this.toggled[key] = !this.toggled[key];
+				void this.applyKey(key);
+			} else if (config.face.type === 'remote' && config.face.refreshOnPress) {
+				void this.applyKey(key);
+			}
 			this.runAction(key);
 		}
 	};
@@ -188,6 +196,7 @@ class Connection {
 		}
 		this.pad = null;
 		this.pressed = Array(NUM_KEYS).fill(false);
+		this.toggled = Array(NUM_KEYS).fill(false);
 		for (const id of this.liveTimers.values()) clearInterval(id);
 		this.liveTimers.clear();
 		if (this.status !== 'unsupported') this.status = 'disconnected';

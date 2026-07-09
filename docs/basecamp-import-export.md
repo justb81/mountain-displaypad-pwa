@@ -33,7 +33,7 @@ in text content. This is a stable, boring shape — not arbitrary hand-authored 
 | `FunctionType` / `SubFunctionType` / `FunctionValue` / `FunctionEnteredValue` / `CustomURL`  | The action. See §4.1 for the catalog observed in the sample.                                                                                                                        |
 | `base64Image` / `ImageFilePath`                                                              | The key face. Three shapes exist — see §4.3.                                                                                                                                        |
 | `OptionalText`                                                                               | A JSON string (`TextTitle`, font, color, alignment) describing text Base Camp **already burned into** `base64Image`'s pixels before saving. We don't need to render text ourselves. |
-| `SecondBase64Image` / `SecondImageFilePath` / `SecondOptionalText` / `IsFirstImageSelected`  | An optional second face+state for toggle keys (e.g. the sample's mic mute/unmute key). No equivalent in our model.                                                                  |
+| `SecondBase64Image` / `SecondImageFilePath` / `SecondOptionalText` / `IsFirstImageSelected`  | An optional second face+state for toggle keys (e.g. the sample's mic mute/unmute key). Imported into `KeyConfig.secondFace` — see §4.4.                                             |
 | `IsKeyAssigned`, `IsTouchKey`, `IsHardWarePress`, `IsSyncAcrossProfiles`, `modified_at`, ... | Bookkeeping. Ignore on import; emit sane constants on export.                                                                                                                       |
 
 ## 3. Mapping to our `KeyConfig`
@@ -43,6 +43,7 @@ in text content. This is a stable, boring shape — not arbitrary hand-authored 
 | `label`                            | `OptionalText.TextTitle`, falling back to `KeyName`                  | Display-only in our UI (`PadKey.svelte`) — never painted onto the hardware image, so this is a safe, lossless-enough mapping.       |
 | `face: {type:'image', dataUrl}`    | `base64Image`, only when it's already a `data:image/...;base64,` URL | Directly compatible with `rasterize()` — no conversion needed.                                                                      |
 | `face: {type:'color'}` (fallback)  | —                                                                    | Used whenever `base64Image` is empty or a non-data-URL path (see §4.3).                                                             |
+| `secondFace` (optional)            | `SecondBase64Image`, ordered by `IsFirstImageSelected`               | Toggle key's alternate face — see §4.4.                                                                                             |
 | `action: {type:'open-url', url}`   | `CustomURL`, only when `FunctionType === 'Run browser'`              | The URL is **not** in `FunctionValue` (that literally holds the string `"Run browser"`) — it's in the separate `CustomURL` element. |
 | `action: {type:'none'}` (fallback) | —                                                                    | Every other `FunctionType` (see §4.1).                                                                                              |
 
@@ -92,8 +93,13 @@ them — see §7, Phase 2.)
 
 ### 4.4 Second image / toggle state
 
-No equivalent in `KeyConfig`. Import takes whichever face has `IsFirstImageSelected` (always
-the first, in our sample) and drops the second.
+`KeyConfig.secondFace` (optional) holds a toggle key's alternate face. Import parses
+`SecondBase64Image` the same way as the primary face (inline data URL only, else a warning +
+placeholder) and normalizes on `IsFirstImageSelected` so `face` always ends up the
+currently-selected state and `secondFace` the other — our runtime toggle always starts at
+state 0 (`face`) and flips to state 1 (`secondFace`) on each press, repainting via
+`connection.applyKey`. Export always writes `face` back out as the first/selected image and
+`secondFace` (if present) as the second.
 
 ## 5. Proposed architecture
 

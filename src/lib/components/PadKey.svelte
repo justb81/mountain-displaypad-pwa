@@ -8,17 +8,20 @@
 		index: number;
 		config: KeyConfig;
 		pressed: boolean;
+		/** Whether a toggle key is currently showing its `secondFace` instead of `face`. */
+		toggled: boolean;
 		selected: boolean;
 		onselect: (index: number) => void;
 		/** Fired when another key tile is dropped onto this one. `copy` reflects whether a modifier was held. */
 		ondropkey: (from: number, to: number, copy: boolean) => void;
 	}
 
-	let { index, config, pressed, selected, onselect, ondropkey }: Props = $props();
+	let { index, config, pressed, toggled, selected, onselect, ondropkey }: Props = $props();
 
-	const background = $derived(config.face.type === 'color' ? config.face.color : undefined);
-	const image = $derived(config.face.type === 'image' ? config.face.dataUrl : undefined);
-	const isRemote = $derived(config.face.type === 'remote');
+	const activeFace = $derived(toggled && config.secondFace ? config.secondFace : config.face);
+	const background = $derived(activeFace.type === 'color' ? activeFace.color : undefined);
+	const image = $derived(activeFace.type === 'image' ? activeFace.dataUrl : undefined);
+	const isRemote = $derived(activeFace.type === 'remote');
 
 	let dragOver = $state(false);
 
