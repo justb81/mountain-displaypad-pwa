@@ -10,7 +10,7 @@ import {
 	isKeyStateReport,
 	keyToGrid
 } from './protocol.js';
-import { RGBA_BYTES, encodeImage, encodeSolidColor, hexToRgb } from './image.js';
+import { RGBA_BYTES, encodeImage, encodeSolidColor, hexToRgb, removeBackground } from './image.js';
 
 /** Build a zeroed 64-byte report with the given first byte. */
 function report(firstByte: number): Uint8Array {
@@ -104,5 +104,47 @@ describe('pixel encoding', () => {
 
 	it('parses #rrggbb colours', () => {
 		expect(hexToRgb('#0ea5e9')).toEqual([0x0e, 0xa5, 0xe9]);
+	});
+});
+
+describe('background removal', () => {
+	const WHITE = [255, 255, 255, 255];
+	const BLACK = [0, 0, 0, 255];
+
+	function image(rows: number[][][]): Uint8ClampedArray {
+		return new Uint8ClampedArray(rows.flat(Infinity) as number[]);
+	}
+
+	it('clears alpha on background pixels flood-filled from the border', () => {
+		const rgba = image([
+			[WHITE, WHITE, WHITE, WHITE],
+			[WHITE, BLACK, BLACK, WHITE],
+			[WHITE, BLACK, BLACK, WHITE],
+			[WHITE, WHITE, WHITE, WHITE]
+		]);
+		removeBackground(rgba, 4, 4);
+		const alphaAt = (x: number, y: number) => rgba[(y * 4 + x) * 4 + 3];
+		expect(alphaAt(0, 0)).toBe(0); // corner background
+		expect(alphaAt(3, 3)).toBe(0); // opposite corner background
+		expect(alphaAt(1, 1)).toBe(255); // subject untouched
+		expect(alphaAt(2, 2)).toBe(255); // subject untouched
+	});
+
+	it('leaves a same-coloured island alone when not connected to the border', () => {
+		const rgba = image([
+			[BLACK, BLACK, BLACK, BLACK, BLACK],
+			[BLACK, BLACK, BLACK, BLACK, BLACK],
+			[BLACK, BLACK, WHITE, BLACK, BLACK],
+			[BLACK, BLACK, BLACK, BLACK, BLACK],
+			[BLACK, BLACK, BLACK, BLACK, BLACK]
+		]);
+		removeBackground(rgba, 5, 5); // background sampled from the black top-left corner
+		const alphaAt = (x: number, y: number) => rgba[(y * 5 + x) * 4 + 3];
+		expect(alphaAt(0, 0)).toBe(0); // border background cleared
+		expect(alphaAt(2, 2)).toBe(255); // isolated white pixel untouched
+	});
+
+	it('rejects a buffer whose size does not match width*height', () => {
+		expect(() => removeBackground(new Uint8ClampedArray(4), 2, 2)).toThrow(RangeError);
 	});
 });
