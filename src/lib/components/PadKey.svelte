@@ -18,6 +18,7 @@
 
 	const background = $derived(config.face.type === 'color' ? config.face.color : undefined);
 	const image = $derived(config.face.type === 'image' ? config.face.dataUrl : undefined);
+	const isRemote = $derived(config.face.type === 'remote');
 
 	let dragOver = $state(false);
 
@@ -71,5 +72,13 @@
 	style:background-color={background}
 	style:background-image={image ? `url(${image})` : undefined}
 >
+	{#if isRemote}
+		<span
+			class="absolute top-1 right-1 rounded bg-black/50 px-1 py-0.5 text-[10px]"
+			title="Remote face"
+		>
+			&#8635;
+		</span>
+	{/if}
 	<span class="rounded bg-black/50 px-1 py-0.5">{config.label}</span>
 </button>
