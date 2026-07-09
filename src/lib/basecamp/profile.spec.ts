@@ -38,7 +38,7 @@ describe('parsing the real Base Camp export', () => {
 	it('leaves an unassigned key at its default', () => {
 		expect(result.keys[4]).toEqual({
 			label: 'M5',
-			face: { type: 'color', color: '#1e293b' },
+			face: { type: 'color', color: '#000000' },
 			action: { type: 'none' }
 		});
 	});
@@ -51,7 +51,7 @@ describe('parsing the real Base Camp export', () => {
 
 	it('falls back to a placeholder for a non-portable local image path', () => {
 		// M1's root-page face is a Base Camp-bundled stock icon path, not an inline data URL.
-		expect(result.keys[0].face).toEqual({ type: 'color', color: '#1e293b' });
+		expect(result.keys[0].face).toEqual({ type: 'color', color: '#000000' });
 		expect(result.warnings.some((w) => w.includes('M1') && w.includes("can't read"))).toBe(true);
 	});
 });
@@ -78,7 +78,7 @@ describe('exporting and re-importing', () => {
 			return (
 				overrides[i] ?? {
 					label: `Key ${i + 1}`,
-					face: { type: 'color', color: '#1e293b' },
+					face: { type: 'color', color: '#000000' },
 					action: { type: 'none' }
 				}
 			);
@@ -89,7 +89,7 @@ describe('exporting and re-importing', () => {
 		const source = keys({
 			2: {
 				label: 'Docs',
-				face: { type: 'color', color: '#1e293b' },
+				face: { type: 'color', color: '#000000' },
 				action: { type: 'open-url', url: 'https://example.com' }
 			}
 		});
@@ -114,7 +114,7 @@ describe('exporting and re-importing', () => {
 		const source = keys({
 			0: {
 				label: 'Snippet',
-				face: { type: 'color', color: '#1e293b' },
+				face: { type: 'color', color: '#000000' },
 				action: { type: 'copy-text', text: 'hello' }
 			}
 		});

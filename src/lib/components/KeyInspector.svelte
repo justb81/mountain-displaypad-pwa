@@ -98,7 +98,7 @@
 		<label class="flex items-center gap-2">
 			<input
 				type="color"
-				value={config.face.type === 'color' ? config.face.color : '#1e293b'}
+				value={config.face.type === 'color' ? config.face.color : '#000000'}
 				oninput={(e) => setColor(e.currentTarget.value)}
 			/>
 			Solid colour

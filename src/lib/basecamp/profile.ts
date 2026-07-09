@@ -33,7 +33,7 @@ const KEY_IDS = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 220, 221];
 /** DLL matrix indices for M1..M12 in order — fixed by the device, not sequential. */
 const DLL_MATRIX_INDICES = [8, 17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 125];
 
-const DEFAULT_COLOR = '#1e293b';
+const DEFAULT_COLOR = '#000000';
 
 const parser = new XMLParser({
 	ignoreAttributes: true,
