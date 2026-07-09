@@ -2,6 +2,7 @@
 	import ConnectButton from '$lib/components/ConnectButton.svelte';
 	import KeyInspector from '$lib/components/KeyInspector.svelte';
 	import PadGrid from '$lib/components/PadGrid.svelte';
+	import ProfileTools from '$lib/components/ProfileTools.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { debug } from '$lib/state/debug.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
@@ -41,6 +42,7 @@
 			>
 				Reset all keys
 			</button>
+			<ProfileTools />
 		</div>
 		<KeyInspector index={selected} />
 	</main>

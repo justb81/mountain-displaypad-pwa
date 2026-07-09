@@ -1,0 +1,248 @@
+/**
+ * Import/export for Mountain Base Camp `<Profile>` XML files.
+ *
+ * Base Camp's schema is shared across Mountain's whole product line and supports
+ * nested "folder" pages our flat 12-key grid doesn't model, plus several OS-level
+ * actions (locking the PC, launching a local .exe, global hotkeys, ...) a browser
+ * sandbox categorically can't perform. This module always returns a full 12-key
+ * result — never throws over *partial* data — and instead collects a `warnings`
+ * list describing what didn't survive. See docs/basecamp-import-export.md.
+ *
+ * Pure and Node-testable, like the protocol layer: no browser/DOM APIs.
+ */
+
+import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import { NUM_KEYS } from '$lib/displaypad/protocol.js';
+import type { KeyAction, KeyConfig, KeyFace } from '$lib/types.js';
+
+/** Result of importing a Base Camp profile: a full keymap plus what didn't survive. */
+export interface BasecampImportResult {
+	keys: KeyConfig[];
+	warnings: string[];
+}
+
+/** Result of exporting a keymap: the XML document plus what didn't survive. */
+export interface BasecampExportResult {
+	xml: string;
+	warnings: string[];
+}
+
+/** Hardware key ids for M1..M12 in order — fixed by the device, not sequential. */
+const KEY_IDS = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 220, 221];
+
+/** DLL matrix indices for M1..M12 in order — fixed by the device, not sequential. */
+const DLL_MATRIX_INDICES = [8, 17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 125];
+
+const DEFAULT_COLOR = '#1e293b';
+
+const parser = new XMLParser({
+	ignoreAttributes: true,
+	isArray: (name) => name === 'DisplayPadLayerBidings'
+});
+
+const builder = new XMLBuilder({
+	ignoreAttributes: false,
+	attributeNamePrefix: '@_',
+	format: true
+});
+
+interface RawBinding {
+	ParentId?: number;
+	KeyName?: string;
+	FunctionType?: string;
+	SubFunctionType?: string;
+	CustomURL?: string;
+	base64Image?: string;
+	OptionalText?: string;
+}
+
+interface RawProfile {
+	DeviceType?: string;
+	DisplayPadKeyBindings?: { DisplayPadLayerBidings?: RawBinding[] };
+}
+
+function defaultKey(index: number): KeyConfig {
+	return {
+		label: `Key ${index + 1}`,
+		face: { type: 'color', color: DEFAULT_COLOR },
+		action: { type: 'none' }
+	};
+}
+
+/** Parse a Base Camp `<Profile>` XML export into a 12-key configuration. */
+export function parseBasecampProfile(xmlText: string): BasecampImportResult {
+	const warnings: string[] = [];
+
+	let doc: { Profile?: RawProfile };
+	try {
+		doc = parser.parse(xmlText) as { Profile?: RawProfile };
+	} catch (err) {
+		throw new Error(`Not a valid XML file: ${err instanceof Error ? err.message : String(err)}`);
+	}
+
+	const profile = doc.Profile;
+	if (!profile)
+		throw new Error('Not a Mountain Base Camp profile: missing a <Profile> root element.');
+
+	if (profile.DeviceType && profile.DeviceType !== 'DisplayPad') {
+		warnings.push(
+			`This profile was saved for a "${profile.DeviceType}", not a DisplayPad — importing whatever DisplayPad key bindings it contains anyway.`
+		);
+	}
+
+	const bindings = profile.DisplayPadKeyBindings?.DisplayPadLayerBidings ?? [];
+	if (bindings.length === 0) {
+		warnings.push('This profile has no DisplayPad key bindings — nothing to import.');
+		return { keys: Array.from({ length: NUM_KEYS }, (_, i) => defaultKey(i)), warnings };
+	}
+
+	const rootPage = bindings.filter((b) => (b.ParentId ?? 0) === 0);
+	const subPageIds = new Set(
+		bindings.filter((b) => (b.ParentId ?? 0) !== 0).map((b) => b.ParentId)
+	);
+	if (subPageIds.size > 0) {
+		warnings.push(
+			`This profile has ${subPageIds.size} sub-menu page${subPageIds.size === 1 ? '' : 's'} (opened via "Create Folder" keys) — only the top-level page was imported; nested pages aren't supported yet.`
+		);
+	}
+
+	const keys = Array.from({ length: NUM_KEYS }, (_, i) => defaultKey(i));
+	for (const binding of rootPage) {
+		const match = /^M(\d+)$/.exec(binding.KeyName ?? '');
+		const index = match ? Number(match[1]) - 1 : -1;
+		if (index < 0 || index >= NUM_KEYS) {
+			warnings.push(`Skipped a key with an unrecognised name "${binding.KeyName}".`);
+			continue;
+		}
+		keys[index] = keyConfigFromBinding(binding, index, warnings);
+	}
+
+	return { keys, warnings };
+}
+
+function keyConfigFromBinding(binding: RawBinding, index: number, warnings: string[]): KeyConfig {
+	const keyLabel = binding.KeyName || `Key ${index + 1}`;
+
+	let title: string | undefined;
+	if (binding.OptionalText) {
+		try {
+			title = (JSON.parse(binding.OptionalText) as { TextTitle?: string }).TextTitle;
+		} catch {
+			// Not valid JSON — fall back to the key name below.
+		}
+	}
+	const label = title?.trim() || keyLabel;
+
+	let face: KeyFace = { type: 'color', color: DEFAULT_COLOR };
+	if (binding.base64Image?.startsWith('data:image/')) {
+		face = { type: 'image', dataUrl: binding.base64Image };
+	} else if (binding.base64Image) {
+		warnings.push(
+			`${keyLabel}: its image is a file on the original PC (${binding.base64Image}), which a browser can't read — imported without an icon.`
+		);
+	}
+
+	let action: KeyAction = { type: 'none' };
+	if (binding.FunctionType === 'Run browser' && binding.CustomURL) {
+		action = { type: 'open-url', url: binding.CustomURL };
+	} else if (binding.FunctionType && binding.FunctionType !== 'Default') {
+		const detail = binding.SubFunctionType
+			? `${binding.FunctionType} → ${binding.SubFunctionType}`
+			: binding.FunctionType;
+		warnings.push(
+			`${keyLabel}: "${detail}" isn't something a browser can do — imported without an action.`
+		);
+	}
+
+	return { label, face, action };
+}
+
+/** Serialize a 12-key configuration into a single-page Base Camp `<Profile>` XML export. */
+export function serializeBasecampProfile(keys: KeyConfig[]): BasecampExportResult {
+	if (keys.length !== NUM_KEYS) {
+		throw new RangeError(`Expected ${NUM_KEYS} keys, got ${keys.length}.`);
+	}
+
+	const warnings: string[] = [];
+	const now = new Date().toISOString();
+	const bindings = keys.map((key, index) => bindingFromKeyConfig(key, index, now, warnings));
+
+	const doc = {
+		'?xml': { '@_version': '1.0', '@_encoding': 'utf-8' },
+		Profile: {
+			'@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+			'@_xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
+			ProfileId: 1,
+			Id: 1,
+			DeviceType: 'DisplayPad',
+			ProfileName: 'DisplayPad Configurator',
+			OrderNo: 1,
+			IsSelected: 1,
+			modified_at: now,
+			IsDefaultProfileImage: true,
+			IsCloseExeTracking: false,
+			MakaluLightings: '',
+			MakaluKeyBindings: '',
+			MakaluSettings: '',
+			EverestLightings: '',
+			EverestKeyBindings: '',
+			Everest60Lightings: '',
+			Everest60KeyBindings: '',
+			Everest60Settings: '',
+			DisplayPadKeyBindings: { DisplayPadLayerBidings: bindings }
+		}
+	};
+
+	return { xml: builder.build(doc) as string, warnings };
+}
+
+function bindingFromKeyConfig(
+	key: KeyConfig,
+	index: number,
+	timestamp: string,
+	warnings: string[]
+) {
+	const keyName = `M${index + 1}`;
+	let action = key.action;
+	if (action.type === 'copy-text') {
+		warnings.push(
+			`${keyName} ("${key.label}"): "copy text" has no equivalent in the DisplayPad profile format — exported as unassigned.`
+		);
+		action = { type: 'none' };
+	}
+	const isBrowserAction = action.type === 'open-url';
+
+	return {
+		ProfileId: 1,
+		ParentId: 0,
+		KeyId: KEY_IDS[index],
+		KeyName: keyName,
+		KeyNameFull: `SW${index + 1}(${keyName})`,
+		IsKeyAssigned: isBrowserAction,
+		IsTouchKey: true,
+		FunctionType: isBrowserAction ? 'Run browser' : 'Default',
+		SubFunctionType: isBrowserAction ? 'Run browser' : '',
+		FunctionValue: isBrowserAction ? 'Run browser' : '',
+		FunctionEnteredValue: '',
+		OnPressRelease: 'Press',
+		IsSyncAcrossProfiles: false,
+		base64Image: key.face.type === 'image' ? key.face.dataUrl : '',
+		ImageFilePath: '',
+		IsDefaultTouchKeyImage: key.face.type !== 'image',
+		modified_at: timestamp,
+		DLLKeyId: KEY_IDS[index],
+		DLLKeyName: keyName,
+		DLLMatrixIndex: DLL_MATRIX_INDICES[index],
+		CustomURL: action.type === 'open-url' ? action.url : undefined,
+		IsActive: true,
+		OptionalText: '',
+		SecondBase64Image: '',
+		SecondImageFilePath: '',
+		SecondOptionalText: '',
+		IsSecondDefaultTouchKeyImage: true,
+		IsHardWarePress: false,
+		IsFirstImageSelected: true,
+		IsFirstImageDeleted: false,
+		IsSecondImageDeleted: false
+	};
+}
