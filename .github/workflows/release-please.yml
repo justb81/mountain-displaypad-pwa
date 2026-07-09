@@ -16,3 +16,7 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          # Releases created with the default GITHUB_TOKEN can't trigger other
+          # workflows (GitHub's anti-recursion guard) — deploy.yml listens for
+          # `release: published` and would never fire without this PAT.
+          token: ${{ secrets.RELEASE_TOKEN }}
