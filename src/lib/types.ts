@@ -2,7 +2,21 @@
 
 /** What a key does when pressed. The PWA reacts in-page; there is no OS-level agent. */
 export type KeyAction =
-	{ type: 'none' } | { type: 'open-url'; url: string } | { type: 'copy-text'; text: string };
+	| { type: 'none' }
+	| { type: 'open-url'; url: string }
+	| { type: 'copy-text'; text: string }
+	| {
+			/** Fire an HTTP request straight from the browser (toggle a light, kick a CI job, ...). */
+			type: 'webhook';
+			method: 'GET' | 'POST';
+			url: string;
+			/** Raw request body sent as `application/json` on POST — stored verbatim as typed. */
+			body?: string;
+			/** Extra request headers, name → value. */
+			headers?: Record<string, string>;
+			/** Fire-and-forget with an opaque response: no CORS needed, but status/errors are unreadable. */
+			noCors?: boolean;
+	  };
 
 /** How a key renders on the physical pad. */
 export type KeyFace =

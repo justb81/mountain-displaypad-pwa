@@ -204,6 +204,24 @@ describe('exporting and re-importing', () => {
 		expect(parseBasecampProfile(xml).keys[0].action).toEqual({ type: 'none' });
 	});
 
+	it('downgrades a webhook action on export with a warning, since Base Camp has no such action', () => {
+		const source = keys({
+			3: {
+				label: 'Toggle light',
+				face: { type: 'color', color: '#000000' },
+				action: {
+					type: 'webhook',
+					method: 'POST',
+					url: 'https://example.com/hook',
+					body: '{"on":true}'
+				}
+			}
+		});
+		const { xml, warnings } = serializeBasecampProfile(source);
+		expect(warnings.some((w) => w.includes('webhook'))).toBe(true);
+		expect(parseBasecampProfile(xml).keys[3].action).toEqual({ type: 'none' });
+	});
+
 	it('rejects a keys array of the wrong length', () => {
 		expect(() => serializeBasecampProfile([])).toThrow(RangeError);
 	});
