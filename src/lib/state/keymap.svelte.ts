@@ -37,6 +37,20 @@ class Keymap {
 		this.persist();
 	}
 
+	/** Swap two keys' configs in place (contents, not array identity) and persist. */
+	swap(a: number, b: number): void {
+		if (a === b) return;
+		[this.keys[a], this.keys[b]] = [this.keys[b], this.keys[a]];
+		this.persist();
+	}
+
+	/** Copy one key's config onto another slot, overwriting it, and persist. */
+	copy(from: number, to: number): void {
+		if (from === to) return;
+		this.keys[to] = { ...this.keys[from] };
+		this.persist();
+	}
+
 	/** Restore every key to its default and persist. */
 	reset(): void {
 		this.keys = defaults();
