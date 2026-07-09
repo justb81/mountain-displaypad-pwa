@@ -3,6 +3,7 @@
 	import KeyInspector from '$lib/components/KeyInspector.svelte';
 	import PadGrid from '$lib/components/PadGrid.svelte';
 	import ProfileTools from '$lib/components/ProfileTools.svelte';
+	import TemplateStash from '$lib/components/TemplateStash.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { debug } from '$lib/state/debug.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
@@ -56,6 +57,9 @@
 			</button>
 			<ProfileTools />
 		</div>
-		<KeyInspector index={selected} onmove={(i) => (selected = i)} />
+		<div class="flex flex-col gap-6">
+			<KeyInspector index={selected} onmove={(i) => (selected = i)} />
+			<TemplateStash {selected} />
+		</div>
 	</main>
 </div>

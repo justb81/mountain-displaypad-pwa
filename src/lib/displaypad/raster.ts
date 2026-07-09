@@ -20,6 +20,22 @@ export async function rasterize(src: string, size = ICON_SIZE): Promise<Uint8Cla
 	return ctx.getImageData(0, 0, size, size).data;
 }
 
+/**
+ * Re-encode `src` as a {@link ICON_SIZE}x{@link ICON_SIZE} PNG data URL. Used to
+ * shrink an image face before it's stashed as a template, since a template stash
+ * of full-resolution images can bump into the localStorage quota.
+ */
+export async function downscaleToDataUrl(src: string, size = ICON_SIZE): Promise<string> {
+	const image = await loadImage(src);
+	const canvas = document.createElement('canvas');
+	canvas.width = size;
+	canvas.height = size;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) throw new Error('2D canvas context unavailable.');
+	ctx.drawImage(image, 0, 0, size, size);
+	return canvas.toDataURL('image/png');
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
 	return new Promise((resolve, reject) => {
 		const image = new Image();
