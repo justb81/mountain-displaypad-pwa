@@ -67,3 +67,79 @@ function assertByte(value: number, name: string): void {
 		throw new RangeError(`Expected ${name} to be 0..255, got ${value}`);
 	}
 }
+
+export interface RemoveBackgroundOptions {
+	/**
+	 * Max summed per-channel colour difference (0..765) from the sampled
+	 * background colour for a pixel to still count as background. Higher
+	 * tolerates JPEG noise/gradients but risks eating into the subject.
+	 */
+	tolerance?: number;
+}
+
+const DEFAULT_TOLERANCE = 48;
+
+/**
+ * Zero out the alpha channel of the background behind a subject, in place.
+ *
+ * Samples the top-left corner as the background colour, then flood-fills
+ * inward from the image border, clearing alpha on every 4-connected pixel
+ * within `tolerance` of that colour. Flood-filling from the border (rather
+ * than a global colour match) keeps same-coloured pixels inside the subject
+ * intact as long as they aren't connected to the edge.
+ *
+ * @param rgba Row-major RGBA pixels, `width * height * 4` bytes.
+ */
+export function removeBackground(
+	rgba: Uint8ClampedArray,
+	width: number,
+	height: number,
+	options: RemoveBackgroundOptions = {}
+): void {
+	if (rgba.length !== width * height * 4) {
+		throw new RangeError(`Expected ${width * height * 4} RGBA bytes, got ${rgba.length}`);
+	}
+	if (width === 0 || height === 0) return;
+	const tolerance = options.tolerance ?? DEFAULT_TOLERANCE;
+	const bgR = rgba[0];
+	const bgG = rgba[1];
+	const bgB = rgba[2];
+
+	const visited = new Uint8Array(width * height);
+	const queue = new Int32Array(width * height);
+	let head = 0;
+	let tail = 0;
+
+	const matches = (i: number): boolean => {
+		const px = i * 4;
+		const diff =
+			Math.abs(rgba[px] - bgR) + Math.abs(rgba[px + 1] - bgG) + Math.abs(rgba[px + 2] - bgB);
+		return diff <= tolerance;
+	};
+
+	const enqueue = (i: number): void => {
+		if (visited[i] || !matches(i)) return;
+		visited[i] = 1;
+		rgba[i * 4 + 3] = 0;
+		queue[tail++] = i;
+	};
+
+	for (let x = 0; x < width; x++) {
+		enqueue(x); // top row
+		enqueue((height - 1) * width + x); // bottom row
+	}
+	for (let y = 0; y < height; y++) {
+		enqueue(y * width); // left column
+		enqueue(y * width + width - 1); // right column
+	}
+
+	while (head < tail) {
+		const i = queue[head++];
+		const x = i % width;
+		const y = (i - x) / width;
+		if (x > 0) enqueue(i - 1);
+		if (x < width - 1) enqueue(i + 1);
+		if (y > 0) enqueue(i - width);
+		if (y < height - 1) enqueue(i + width);
+	}
+}

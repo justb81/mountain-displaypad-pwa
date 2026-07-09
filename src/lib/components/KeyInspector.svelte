@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { NUM_KEYS } from '$lib/displaypad/protocol.js';
+	import { removeImageBackground } from '$lib/displaypad/raster.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { templates } from '$lib/state/templates.svelte.js';
 	import type { KeyAction } from '$lib/types.js';
@@ -28,6 +29,10 @@
 		await templates.save(templateName.trim() || config.label, config);
 		savingTemplate = false;
 	}
+
+	let removingBackground = $state(false);
+	let removingSecondBackground = $state(false);
+	let backgroundError = $state<string | undefined>(undefined);
 
 	function moveTo(target: number) {
 		if (target < 0 || target >= NUM_KEYS || target === index) return;
@@ -96,6 +101,34 @@
 		reader.onload = () =>
 			keymap.update(index, { secondFace: { type: 'image', dataUrl: String(reader.result) } });
 		reader.readAsDataURL(file);
+	}
+
+	async function removeBackground() {
+		if (config.face.type !== 'image') return;
+		removingBackground = true;
+		backgroundError = undefined;
+		try {
+			const dataUrl = await removeImageBackground(config.face.dataUrl);
+			keymap.update(index, { face: { type: 'image', dataUrl } });
+		} catch {
+			backgroundError = 'Could not remove the background from this image.';
+		} finally {
+			removingBackground = false;
+		}
+	}
+
+	async function removeSecondBackground() {
+		if (config.secondFace?.type !== 'image') return;
+		removingSecondBackground = true;
+		backgroundError = undefined;
+		try {
+			const dataUrl = await removeImageBackground(config.secondFace.dataUrl);
+			keymap.update(index, { secondFace: { type: 'image', dataUrl } });
+		} catch {
+			backgroundError = 'Could not remove the background from this image.';
+		} finally {
+			removingSecondBackground = false;
+		}
 	}
 
 	function setActionType(type: KeyAction['type']) {
@@ -249,7 +282,20 @@
 			<input type="file" accept="image/*" onchange={onFile} class="text-slate-400" />
 		</label>
 		{#if config.face.type === 'image'}
-			<img src={config.face.dataUrl} alt="Key preview" class="h-16 w-16 rounded object-cover" />
+			<div class="flex items-center gap-2">
+				<img src={config.face.dataUrl} alt="Key preview" class="h-16 w-16 rounded object-cover" />
+				<button
+					type="button"
+					onclick={() => void removeBackground()}
+					disabled={removingBackground}
+					class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+				>
+					{removingBackground ? 'Removing…' : 'Remove background'}
+				</button>
+			</div>
+		{/if}
+		{#if backgroundError}
+			<p class="pl-1 text-xs text-rose-400">{backgroundError}</p>
 		{/if}
 		<label class="flex items-center gap-2">
 			Remote URL
@@ -317,11 +363,21 @@
 				<input type="file" accept="image/*" onchange={onSecondFile} class="text-slate-400" />
 			</label>
 			{#if config.secondFace.type === 'image'}
-				<img
-					src={config.secondFace.dataUrl}
-					alt="Second face preview"
-					class="h-16 w-16 rounded object-cover"
-				/>
+				<div class="flex items-center gap-2">
+					<img
+						src={config.secondFace.dataUrl}
+						alt="Second face preview"
+						class="h-16 w-16 rounded object-cover"
+					/>
+					<button
+						type="button"
+						onclick={() => void removeSecondBackground()}
+						disabled={removingSecondBackground}
+						class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+					>
+						{removingSecondBackground ? 'Removing…' : 'Remove background'}
+					</button>
+				</div>
 			{/if}
 		{/if}
 	</fieldset>

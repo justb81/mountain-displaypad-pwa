@@ -4,6 +4,7 @@
  */
 
 import { ICON_SIZE } from './protocol.js';
+import { removeBackground, type RemoveBackgroundOptions } from './image.js';
 
 /**
  * Draw `src` into an {@link ICON_SIZE}x{@link ICON_SIZE} canvas and return its
@@ -33,6 +34,32 @@ export async function downscaleToDataUrl(src: string, size = ICON_SIZE): Promise
 	const ctx = canvas.getContext('2d');
 	if (!ctx) throw new Error('2D canvas context unavailable.');
 	ctx.drawImage(image, 0, 0, size, size);
+	return canvas.toDataURL('image/png');
+}
+
+/**
+ * Flood-fill the background out of an image's alpha channel and return the
+ * result as a `data:image/png` URL, at the image's native resolution.
+ *
+ * The pad itself has no concept of transparency (`encodeImage` in `image.ts`
+ * drops alpha), so the cleared pixels render black on the physical key.
+ */
+export async function removeImageBackground(
+	src: string,
+	options?: RemoveBackgroundOptions
+): Promise<string> {
+	const image = await loadImage(src);
+	const width = image.naturalWidth || image.width;
+	const height = image.naturalHeight || image.height;
+	const canvas = document.createElement('canvas');
+	canvas.width = width;
+	canvas.height = height;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) throw new Error('2D canvas context unavailable.');
+	ctx.drawImage(image, 0, 0);
+	const imageData = ctx.getImageData(0, 0, width, height);
+	removeBackground(imageData.data, width, height, options);
+	ctx.putImageData(imageData, 0, 0);
 	return canvas.toDataURL('image/png');
 }
 
