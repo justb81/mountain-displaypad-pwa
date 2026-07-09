@@ -25,6 +25,9 @@ export type KeyFace =
 export interface KeyConfig {
 	label: string;
 	face: KeyFace;
+	/** Optional alternate face for a toggle key (e.g. mic mute/unmute) — a press flips
+	 *  between `face` and `secondFace` and repaints the key. Absent for a normal key. */
+	secondFace?: KeyFace;
 	action: KeyAction;
 }
 

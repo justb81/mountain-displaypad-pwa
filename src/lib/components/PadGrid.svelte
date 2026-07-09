@@ -35,6 +35,7 @@
 			{index}
 			{config}
 			pressed={connection.pressed[index]}
+			toggled={connection.toggled[index]}
 			selected={selected === index}
 			{onselect}
 			{ondropkey}

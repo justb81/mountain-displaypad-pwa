@@ -65,6 +65,25 @@
 		connection.syncLiveTimer(index);
 	}
 
+	function toggleSecondFace(enabled: boolean) {
+		keymap.update(index, {
+			secondFace: enabled ? { type: 'color', color: '#000000' } : undefined
+		});
+	}
+
+	function setSecondColor(color: string) {
+		keymap.update(index, { secondFace: { type: 'color', color } });
+	}
+
+	function onSecondFile(event: Event) {
+		const file = (event.currentTarget as HTMLInputElement).files?.[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = () =>
+			keymap.update(index, { secondFace: { type: 'image', dataUrl: String(reader.result) } });
+		reader.readAsDataURL(file);
+	}
+
 	function setActionType(type: KeyAction['type']) {
 		const action: KeyAction =
 			type === 'open-url'
@@ -175,6 +194,39 @@
 			</p>
 			{#if connection.liveFaceErrors[index]}
 				<p class="pl-1 text-xs text-rose-400">{connection.liveFaceErrors[index]}</p>
+			{/if}
+		{/if}
+	</fieldset>
+
+	<fieldset class="flex flex-col gap-2 text-sm text-slate-300">
+		<legend class="mb-1">Toggle key (second face)</legend>
+		<label class="flex items-center gap-2">
+			<input
+				type="checkbox"
+				checked={!!config.secondFace}
+				onchange={(e) => toggleSecondFace(e.currentTarget.checked)}
+			/>
+			Flip to a second face on each press
+		</label>
+		{#if config.secondFace}
+			<label class="flex items-center gap-2">
+				<input
+					type="color"
+					value={config.secondFace.type === 'color' ? config.secondFace.color : '#000000'}
+					oninput={(e) => setSecondColor(e.currentTarget.value)}
+				/>
+				Solid colour
+			</label>
+			<label class="flex items-center gap-2">
+				Image
+				<input type="file" accept="image/*" onchange={onSecondFile} class="text-slate-400" />
+			</label>
+			{#if config.secondFace.type === 'image'}
+				<img
+					src={config.secondFace.dataUrl}
+					alt="Second face preview"
+					class="h-16 w-16 rounded object-cover"
+				/>
 			{/if}
 		{/if}
 	</fieldset>

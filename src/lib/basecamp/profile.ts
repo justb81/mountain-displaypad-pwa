@@ -64,6 +64,8 @@ interface RawBinding {
 	CustomURL?: string;
 	base64Image?: string;
 	OptionalText?: string;
+	SecondBase64Image?: string;
+	IsFirstImageSelected?: boolean;
 }
 
 interface RawProfile {
@@ -155,13 +157,15 @@ function keyConfigFromBinding(binding: RawBinding, index: number, warnings: stri
 	}
 	const label = title?.trim() || keyLabel;
 
-	let face: KeyFace = { type: 'color', color: DEFAULT_COLOR };
-	if (binding.base64Image?.startsWith('data:image/')) {
-		face = { type: 'image', dataUrl: binding.base64Image };
-	} else if (binding.base64Image) {
-		warnings.push(
-			`${keyLabel}: its image is a file on the original PC (${binding.base64Image}), which a browser can't read — imported without an icon.`
-		);
+	let face = resolveFace(binding.base64Image, keyLabel, 'image', warnings);
+	let secondFace: KeyFace | undefined;
+	if (binding.SecondBase64Image) {
+		secondFace = resolveFace(binding.SecondBase64Image, keyLabel, 'second image', warnings);
+	}
+	// Normalize so `face` is always the currently-selected state: our runtime toggle
+	// starts at state 0 (`face`) and flips to state 1 (`secondFace`) on each press.
+	if (secondFace && binding.IsFirstImageSelected === false) {
+		[face, secondFace] = [secondFace, face];
 	}
 
 	let action: KeyAction = { type: 'none' };
@@ -176,7 +180,25 @@ function keyConfigFromBinding(binding: RawBinding, index: number, warnings: stri
 		);
 	}
 
-	return { label, face, action };
+	return { label, face, ...(secondFace ? { secondFace } : {}), action };
+}
+
+/** Resolve one `base64Image`-shaped field to a face, warning if it's a non-portable local path. */
+function resolveFace(
+	base64Image: string | undefined,
+	keyLabel: string,
+	fieldLabel: 'image' | 'second image',
+	warnings: string[]
+): KeyFace {
+	if (base64Image?.startsWith('data:image/')) {
+		return { type: 'image', dataUrl: base64Image };
+	}
+	if (base64Image) {
+		warnings.push(
+			`${keyLabel}: its ${fieldLabel} is a file on the original PC (${base64Image}), which a browser can't read — imported without an icon.`
+		);
+	}
+	return { type: 'color', color: DEFAULT_COLOR };
 }
 
 /** Serialize a 12-key configuration into a single-page Base Camp `<Profile>` XML export. */
@@ -262,11 +284,12 @@ function bindingFromKeyConfig(
 		CustomURL: action.type === 'open-url' ? action.url : undefined,
 		IsActive: true,
 		OptionalText: '',
-		SecondBase64Image: '',
+		SecondBase64Image: key.secondFace?.type === 'image' ? key.secondFace.dataUrl : '',
 		SecondImageFilePath: '',
 		SecondOptionalText: '',
-		IsSecondDefaultTouchKeyImage: true,
+		IsSecondDefaultTouchKeyImage: key.secondFace?.type !== 'image',
 		IsHardWarePress: false,
+		// `face` always round-trips as the first/selected state; `secondFace` (if any) as the second.
 		IsFirstImageSelected: true,
 		IsFirstImageDeleted: false,
 		IsSecondImageDeleted: false
