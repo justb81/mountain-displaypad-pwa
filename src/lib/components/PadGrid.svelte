@@ -2,6 +2,7 @@
 	import { NUM_KEYS_PER_ROW } from '$lib/displaypad/protocol.js';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
+	import { templates } from '$lib/state/templates.svelte.js';
 	import PadKey from './PadKey.svelte';
 
 	interface Props {
@@ -24,6 +25,13 @@
 			}
 		}
 	}
+
+	function ondroptemplate(templateId: string, to: number) {
+		const template = templates.items.find((t) => t.id === templateId);
+		if (!template) return;
+		keymap.update(to, { ...template.config });
+		if (connection.status === 'connected') void connection.applyKey(to);
+	}
 </script>
 
 <div
@@ -39,6 +47,7 @@
 			selected={selected === index}
 			{onselect}
 			{ondropkey}
+			{ondroptemplate}
 		/>
 	{/each}
 </div>

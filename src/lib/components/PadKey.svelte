@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { TEMPLATE_DRAG_MIME } from '$lib/state/templates.svelte.js';
 	import type { KeyConfig } from '$lib/types.js';
 
 	/** Custom MIME type scoping drag data to key tiles within this app. */
@@ -14,9 +15,12 @@
 		onselect: (index: number) => void;
 		/** Fired when another key tile is dropped onto this one. `copy` reflects whether a modifier was held. */
 		ondropkey: (from: number, to: number, copy: boolean) => void;
+		/** Fired when a stash template tile is dropped onto this one. */
+		ondroptemplate: (templateId: string, to: number) => void;
 	}
 
-	let { index, config, pressed, toggled, selected, onselect, ondropkey }: Props = $props();
+	let { index, config, pressed, toggled, selected, onselect, ondropkey, ondroptemplate }: Props =
+		$props();
 
 	const activeFace = $derived(toggled && config.secondFace ? config.secondFace : config.face);
 	const background = $derived(activeFace.type === 'color' ? activeFace.color : undefined);
@@ -30,14 +34,25 @@
 		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copyMove';
 	}
 
+	function acceptsDrag(event: DragEvent): boolean {
+		const types = event.dataTransfer?.types;
+		return !!types && (types.includes(DRAG_MIME) || types.includes(TEMPLATE_DRAG_MIME));
+	}
+
 	function ondragover(event: DragEvent) {
-		if (!event.dataTransfer?.types.includes(DRAG_MIME)) return;
+		if (!acceptsDrag(event)) return;
 		event.preventDefault();
-		event.dataTransfer.dropEffect = event.ctrlKey || event.altKey ? 'copy' : 'move';
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = event.dataTransfer.types.includes(TEMPLATE_DRAG_MIME)
+				? 'copy'
+				: event.ctrlKey || event.altKey
+					? 'copy'
+					: 'move';
+		}
 	}
 
 	function ondragenter(event: DragEvent) {
-		if (!event.dataTransfer?.types.includes(DRAG_MIME)) return;
+		if (!acceptsDrag(event)) return;
 		event.preventDefault();
 		dragOver = true;
 	}
@@ -48,6 +63,12 @@
 
 	function ondrop(event: DragEvent) {
 		dragOver = false;
+		const templateId = event.dataTransfer?.getData(TEMPLATE_DRAG_MIME);
+		if (templateId) {
+			event.preventDefault();
+			ondroptemplate(templateId, index);
+			return;
+		}
 		const raw = event.dataTransfer?.getData(DRAG_MIME);
 		if (!raw) return;
 		event.preventDefault();

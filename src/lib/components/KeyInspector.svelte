@@ -2,6 +2,7 @@
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { NUM_KEYS } from '$lib/displaypad/protocol.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
+	import { templates } from '$lib/state/templates.svelte.js';
 	import type { KeyAction } from '$lib/types.js';
 
 	interface Props {
@@ -14,6 +15,19 @@
 
 	const config = $derived(keymap.keys[index]);
 	const canApply = $derived(connection.status === 'connected');
+
+	let savingTemplate = $state(false);
+	let templateName = $state('');
+
+	function startSaveTemplate() {
+		templateName = config.label;
+		savingTemplate = true;
+	}
+
+	async function confirmSaveTemplate() {
+		await templates.save(templateName.trim() || config.label, config);
+		savingTemplate = false;
+	}
 
 	function moveTo(target: number) {
 		if (target < 0 || target >= NUM_KEYS || target === index) return;
@@ -129,6 +143,40 @@
 			</button>
 		</div>
 	</header>
+
+	{#if savingTemplate}
+		<div class="flex items-center gap-2 text-sm">
+			<input
+				class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+				placeholder="Template name"
+				value={templateName}
+				oninput={(e) => (templateName = e.currentTarget.value)}
+				onkeydown={(e) => e.key === 'Enter' && confirmSaveTemplate()}
+			/>
+			<button
+				type="button"
+				onclick={confirmSaveTemplate}
+				class="rounded bg-emerald-600 px-3 py-1.5 font-medium text-white hover:bg-emerald-500"
+			>
+				Save
+			</button>
+			<button
+				type="button"
+				onclick={() => (savingTemplate = false)}
+				class="rounded border border-slate-600 px-3 py-1.5 text-slate-200 hover:bg-slate-700"
+			>
+				Cancel
+			</button>
+		</div>
+	{:else}
+		<button
+			type="button"
+			onclick={startSaveTemplate}
+			class="self-start rounded border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-700"
+		>
+			Save as template
+		</button>
+	{/if}
 
 	<label class="flex flex-col gap-1 text-sm text-slate-300">
 		Label
