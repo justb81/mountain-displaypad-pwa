@@ -26,6 +26,10 @@ function defaults(): KeyConfig[] {
 
 class Keymap {
 	keys = $state<KeyConfig[]>(defaults());
+	/** The imported/exported profile's own name, if any — carried through Base Camp round-trips. */
+	profileName = $state<string | undefined>(undefined);
+	/** The imported/exported profile's own thumbnail, as a data URL — carried through Base Camp round-trips. */
+	profileImage = $state<string | undefined>(undefined);
 
 	constructor() {
 		if (browser) this.load();
@@ -58,11 +62,19 @@ class Keymap {
 	}
 
 	/** Replace every key at once (e.g. from an imported profile) and persist. */
-	importAll(keys: KeyConfig[]): void {
+	importAll(keys: KeyConfig[], profileName?: string, profileImage?: string): void {
 		if (keys.length !== NUM_KEYS) {
 			throw new RangeError(`Expected ${NUM_KEYS} keys, got ${keys.length}.`);
 		}
 		this.keys = keys;
+		this.profileName = profileName;
+		this.profileImage = profileImage;
+		this.persist();
+	}
+
+	/** Update the profile's own name and persist. */
+	setProfileName(name: string): void {
+		this.profileName = name.trim() || undefined;
 		this.persist();
 	}
 
@@ -70,15 +82,31 @@ class Keymap {
 		try {
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (!raw) return;
-			const parsed = JSON.parse(raw) as KeyConfig[];
-			if (Array.isArray(parsed) && parsed.length === NUM_KEYS) this.keys = parsed;
+			const parsed = JSON.parse(raw) as
+				KeyConfig[] | { keys: KeyConfig[]; profileName?: string; profileImage?: string };
+			if (Array.isArray(parsed)) {
+				if (parsed.length === NUM_KEYS) this.keys = parsed;
+			} else if (Array.isArray(parsed.keys) && parsed.keys.length === NUM_KEYS) {
+				this.keys = parsed.keys;
+				this.profileName = parsed.profileName;
+				this.profileImage = parsed.profileImage;
+			}
 		} catch {
 			// Corrupt storage — fall back to defaults rather than crashing the app.
 		}
 	}
 
 	private persist(): void {
-		if (browser) localStorage.setItem(STORAGE_KEY, JSON.stringify(this.keys));
+		if (browser) {
+			localStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify({
+					keys: this.keys,
+					profileName: this.profileName,
+					profileImage: this.profileImage
+				})
+			);
+		}
 	}
 }
 
