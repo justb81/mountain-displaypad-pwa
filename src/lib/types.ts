@@ -10,6 +10,15 @@ export type KeyFace =
 	| {
 			type: 'image';
 			/** data URL of a square image, scaled to 102x102 on apply */ dataUrl: string;
+	  }
+	| {
+			type: 'remote';
+			/** Public URL fetched over GET; the endpoint must send CORS headers permissive to this origin. */
+			url: string;
+			/** Refetch this often while connected. Omitted/0 disables the timer. */
+			refreshMinutes?: number;
+			/** Refetch (and re-apply) whenever this key is pressed. */
+			refreshOnPress?: boolean;
 	  };
 
 /** Full user-facing configuration for one of the 12 keys. */

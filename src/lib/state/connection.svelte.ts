@@ -9,6 +9,7 @@
 import { browser } from '$app/environment';
 import { DisplayPad, type KeyEventDetail } from '$lib/displaypad/device.js';
 import { hexToRgb } from '$lib/displaypad/image.js';
+import { fetchRemoteFace } from '$lib/displaypad/liveface.js';
 import { rasterize } from '$lib/displaypad/raster.js';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
 import type { ConnectionStatus } from '$lib/types.js';
@@ -16,14 +17,22 @@ import { keymap } from './keymap.svelte.js';
 
 const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
 
+/** Refuse to poll a remote face more often than this, however small `refreshMinutes` is set. */
+const MIN_REFRESH_MINUTES = 1;
+/** Spread otherwise-identical intervals out a bit so they don't all hit their endpoints at once. */
+const REFRESH_JITTER_MS = 2000;
+
 class Connection {
 	status = $state<ConnectionStatus>('disconnected');
 	error = $state<string | null>(null);
 	pressed = $state<boolean[]>(Array(NUM_KEYS).fill(false));
+	/** Per-key error from the most recent remote-face fetch, `null` once it succeeds. */
+	liveFaceErrors = $state<(string | null)[]>(Array(NUM_KEYS).fill(null));
 
 	#autoApplyOnConnect = $state(false);
 
 	private pad: DisplayPad | null = null;
+	private liveTimers = new Map<number, ReturnType<typeof setInterval>>();
 
 	constructor() {
 		if (!browser) return;
@@ -89,6 +98,7 @@ class Connection {
 		this.attach(pad);
 		this.status = 'connected';
 		if (this.#autoApplyOnConnect) void this.applyAll();
+		for (let i = 0; i < NUM_KEYS; i++) this.syncLiveTimer(i);
 	}
 
 	/** Push a single key's configured face onto the hardware. */
@@ -97,14 +107,50 @@ class Connection {
 		const { face } = keymap.keys[index];
 		if (face.type === 'color') {
 			this.pad.setKeyColor(index, ...hexToRgb(face.color));
-		} else {
+			return;
+		}
+		if (face.type === 'image') {
 			this.pad.setKeyImage(index, await rasterize(face.dataUrl));
+			return;
+		}
+		try {
+			this.pad.setKeyImage(index, await fetchRemoteFace(face.url));
+			this.liveFaceErrors[index] = null;
+		} catch (err) {
+			this.liveFaceErrors[index] = err instanceof Error ? err.message : String(err);
 		}
 	}
 
 	/** Push every key's face onto the hardware. */
 	async applyAll(): Promise<void> {
 		for (let i = 0; i < NUM_KEYS; i++) await this.applyKey(i);
+	}
+
+	/**
+	 * Re-derive key `index`'s refresh timer from its current keymap config. Call
+	 * after editing a key's face so a changed/removed remote source and refresh
+	 * policy take effect immediately; a no-op while disconnected — timers are
+	 * only live between {@link openAndAttach} and {@link teardown}.
+	 */
+	syncLiveTimer(index: number): void {
+		this.clearLiveTimer(index);
+		if (this.status !== 'connected') return;
+
+		const { face } = keymap.keys[index];
+		if (face.type !== 'remote' || !face.refreshMinutes) return;
+
+		const minutes = Math.max(MIN_REFRESH_MINUTES, face.refreshMinutes);
+		const delay = minutes * 60_000 + Math.random() * REFRESH_JITTER_MS;
+		this.liveTimers.set(
+			index,
+			setInterval(() => void this.applyKey(index), delay)
+		);
+	}
+
+	private clearLiveTimer(index: number): void {
+		const id = this.liveTimers.get(index);
+		if (id !== undefined) clearInterval(id);
+		this.liveTimers.delete(index);
 	}
 
 	private attach(pad: DisplayPad): void {
@@ -118,7 +164,11 @@ class Connection {
 		const { key } = (event as CustomEvent<KeyEventDetail>).detail;
 		const down = event.type === 'keydown';
 		this.pressed[key] = down;
-		if (down) this.runAction(key);
+		if (down) {
+			const { face } = keymap.keys[key];
+			if (face.type === 'remote' && face.refreshOnPress) void this.applyKey(key);
+			this.runAction(key);
+		}
 	};
 
 	private runAction(index: number): void {
@@ -138,6 +188,8 @@ class Connection {
 		}
 		this.pad = null;
 		this.pressed = Array(NUM_KEYS).fill(false);
+		for (const id of this.liveTimers.values()) clearInterval(id);
+		this.liveTimers.clear();
 		if (this.status !== 'unsupported') this.status = 'disconnected';
 	}
 }

@@ -38,6 +38,33 @@
 		reader.readAsDataURL(file);
 	}
 
+	function setRemoteUrl(url: string) {
+		const current = config.face.type === 'remote' ? config.face : undefined;
+		keymap.update(index, {
+			face: {
+				type: 'remote',
+				url,
+				refreshMinutes: current?.refreshMinutes,
+				refreshOnPress: current?.refreshOnPress
+			}
+		});
+		connection.syncLiveTimer(index);
+	}
+
+	function setRemoteRefreshMinutes(minutes: number) {
+		if (config.face.type !== 'remote') return;
+		keymap.update(index, {
+			face: { ...config.face, refreshMinutes: minutes > 0 ? minutes : undefined }
+		});
+		connection.syncLiveTimer(index);
+	}
+
+	function setRemoteRefreshOnPress(refreshOnPress: boolean) {
+		if (config.face.type !== 'remote') return;
+		keymap.update(index, { face: { ...config.face, refreshOnPress } });
+		connection.syncLiveTimer(index);
+	}
+
 	function setActionType(type: KeyAction['type']) {
 		const action: KeyAction =
 			type === 'open-url'
@@ -109,6 +136,46 @@
 		</label>
 		{#if config.face.type === 'image'}
 			<img src={config.face.dataUrl} alt="Key preview" class="h-16 w-16 rounded object-cover" />
+		{/if}
+		<label class="flex items-center gap-2">
+			Remote URL
+			<input
+				type="url"
+				placeholder="https://example.com/face.png"
+				value={config.face.type === 'remote' ? config.face.url : ''}
+				oninput={(e) => setRemoteUrl(e.currentTarget.value)}
+				class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+			/>
+		</label>
+		{#if config.face.type === 'remote'}
+			<div class="flex flex-wrap items-center gap-3 pl-1 text-xs text-slate-400">
+				<label class="flex items-center gap-1">
+					Refresh every
+					<input
+						type="number"
+						min="1"
+						placeholder="off"
+						value={config.face.refreshMinutes ?? ''}
+						oninput={(e) => setRemoteRefreshMinutes(Number(e.currentTarget.value))}
+						class="w-16 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+					/>
+					min
+				</label>
+				<label class="flex items-center gap-1">
+					<input
+						type="checkbox"
+						checked={config.face.refreshOnPress ?? false}
+						onchange={(e) => setRemoteRefreshOnPress(e.currentTarget.checked)}
+					/>
+					Refresh on press
+				</label>
+			</div>
+			<p class="pl-1 text-xs text-slate-500">
+				Endpoint must allow cross-origin GET (CORS). SVG responses are rasterised to PNG.
+			</p>
+			{#if connection.liveFaceErrors[index]}
+				<p class="pl-1 text-xs text-rose-400">{connection.liveFaceErrors[index]}</p>
+			{/if}
 		{/if}
 	</fieldset>
 
