@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+:root {
+	color-scheme: dark;
+}
+
+body {
+	background-color: #020617;
+	min-height: 100vh;
+}

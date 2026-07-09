@@ -1,0 +1,19 @@
+{
+	"name": "DisplayPad Configurator",
+	"short_name": "DisplayPad",
+	"description": "Configure your Mountain DisplayPad from the browser.",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"orientation": "any",
+	"background_color": "#020617",
+	"theme_color": "#0284c7",
+	"icons": [
+		{
+			"src": "/pwa-icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	]
+}

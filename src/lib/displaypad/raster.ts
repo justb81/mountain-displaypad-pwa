@@ -1,0 +1,31 @@
+/**
+ * Browser-only helper that rasterises an arbitrary image source (data URL or
+ * remote URL) into the fixed-size RGBA buffer {@link encodeImage} expects.
+ */
+
+import { ICON_SIZE } from './protocol.js';
+
+/**
+ * Draw `src` into an {@link ICON_SIZE}x{@link ICON_SIZE} canvas and return its
+ * RGBA pixels. The image is stretched to fill the square.
+ */
+export async function rasterize(src: string, size = ICON_SIZE): Promise<Uint8ClampedArray> {
+	const image = await loadImage(src);
+	const canvas = document.createElement('canvas');
+	canvas.width = size;
+	canvas.height = size;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) throw new Error('2D canvas context unavailable.');
+	ctx.drawImage(image, 0, 0, size, size);
+	return ctx.getImageData(0, 0, size, size).data;
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+	return new Promise((resolve, reject) => {
+		const image = new Image();
+		image.crossOrigin = 'anonymous';
+		image.onload = () => resolve(image);
+		image.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+		image.src = src;
+	});
+}

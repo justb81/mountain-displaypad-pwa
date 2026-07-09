@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DisplayPad">
+	<rect width="512" height="512" rx="96" fill="#0f172a" />
+	<g fill="#0ea5e9">
+		<rect x="48" y="190" width="56" height="56" rx="12" />
+		<rect x="120" y="190" width="56" height="56" rx="12" />
+		<rect x="192" y="190" width="56" height="56" rx="12" />
+		<rect x="264" y="190" width="56" height="56" rx="12" />
+		<rect x="336" y="190" width="56" height="56" rx="12" />
+		<rect x="408" y="190" width="56" height="56" rx="12" />
+		<rect x="48" y="262" width="56" height="56" rx="12" />
+		<rect x="120" y="262" width="56" height="56" rx="12" />
+		<rect x="192" y="262" width="56" height="56" rx="12" />
+		<rect x="264" y="262" width="56" height="56" rx="12" />
+		<rect x="336" y="262" width="56" height="56" rx="12" />
+		<rect x="408" y="262" width="56" height="56" rx="12" />
+	</g>
+</svg>
