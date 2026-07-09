@@ -19,6 +19,16 @@ import type { KeyAction, KeyConfig, KeyFace } from '$lib/types.js';
 export interface BasecampImportResult {
 	keys: KeyConfig[];
 	warnings: string[];
+	/** The profile's own name (`<ProfileName>`), if the file set one. */
+	profileName?: string;
+	/** The profile's own thumbnail (`<ImagePath>`) as a data URL, if inline. */
+	profileImage?: string;
+}
+
+/** Profile-level identity carried through export alongside the 12 keys. */
+export interface BasecampProfileMeta {
+	profileName?: string;
+	profileImage?: string;
 }
 
 /** Result of exporting a keymap: the XML document plus what didn't survive. */
@@ -58,6 +68,8 @@ interface RawBinding {
 
 interface RawProfile {
 	DeviceType?: string;
+	ProfileName?: string;
+	ImagePath?: string;
 	DisplayPadKeyBindings?: { DisplayPadLayerBidings?: RawBinding[] };
 }
 
@@ -92,10 +104,18 @@ export function parseBasecampProfile(xmlText: string): BasecampImportResult {
 		);
 	}
 
+	const profileName = profile.ProfileName?.trim() || undefined;
+	const profileImage = profile.ImagePath?.startsWith('data:image/') ? profile.ImagePath : undefined;
+
 	const bindings = profile.DisplayPadKeyBindings?.DisplayPadLayerBidings ?? [];
 	if (bindings.length === 0) {
 		warnings.push('This profile has no DisplayPad key bindings — nothing to import.');
-		return { keys: Array.from({ length: NUM_KEYS }, (_, i) => defaultKey(i)), warnings };
+		return {
+			keys: Array.from({ length: NUM_KEYS }, (_, i) => defaultKey(i)),
+			warnings,
+			profileName,
+			profileImage
+		};
 	}
 
 	const rootPage = bindings.filter((b) => (b.ParentId ?? 0) === 0);
@@ -119,7 +139,7 @@ export function parseBasecampProfile(xmlText: string): BasecampImportResult {
 		keys[index] = keyConfigFromBinding(binding, index, warnings);
 	}
 
-	return { keys, warnings };
+	return { keys, warnings, profileName, profileImage };
 }
 
 function keyConfigFromBinding(binding: RawBinding, index: number, warnings: string[]): KeyConfig {
@@ -160,7 +180,10 @@ function keyConfigFromBinding(binding: RawBinding, index: number, warnings: stri
 }
 
 /** Serialize a 12-key configuration into a single-page Base Camp `<Profile>` XML export. */
-export function serializeBasecampProfile(keys: KeyConfig[]): BasecampExportResult {
+export function serializeBasecampProfile(
+	keys: KeyConfig[],
+	meta: BasecampProfileMeta = {}
+): BasecampExportResult {
 	if (keys.length !== NUM_KEYS) {
 		throw new RangeError(`Expected ${NUM_KEYS} keys, got ${keys.length}.`);
 	}
@@ -177,11 +200,12 @@ export function serializeBasecampProfile(keys: KeyConfig[]): BasecampExportResul
 			ProfileId: 1,
 			Id: 1,
 			DeviceType: 'DisplayPad',
-			ProfileName: 'DisplayPad Configurator',
+			ProfileName: meta.profileName || 'DisplayPad Configurator',
 			OrderNo: 1,
+			ImagePath: meta.profileImage ?? '',
 			IsSelected: 1,
 			modified_at: now,
-			IsDefaultProfileImage: true,
+			IsDefaultProfileImage: !meta.profileImage,
 			IsCloseExeTracking: false,
 			MakaluLightings: '',
 			MakaluKeyBindings: '',

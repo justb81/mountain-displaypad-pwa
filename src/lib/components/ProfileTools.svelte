@@ -24,7 +24,7 @@
 				console.debug('[basecamp-import] parsed keys', result.keys);
 				console.debug('[basecamp-import] warnings', result.warnings);
 			}
-			keymap.importAll(result.keys);
+			keymap.importAll(result.keys, result.profileName, result.profileImage);
 			warnings = result.warnings;
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err);
@@ -41,7 +41,10 @@
 
 	function exportProfile(): void {
 		error = null;
-		const result = serializeBasecampProfile(keymap.keys);
+		const result = serializeBasecampProfile(keymap.keys, {
+			profileName: keymap.profileName,
+			profileImage: keymap.profileImage
+		});
 		warnings = result.warnings;
 		const blob = new Blob([result.xml], { type: 'application/xml' });
 		const url = URL.createObjectURL(blob);
@@ -54,6 +57,17 @@
 </script>
 
 <div class="flex flex-wrap items-center gap-3 text-sm">
+	<label class="flex items-center gap-2">
+		<span class="text-slate-400">Profile name</span>
+		<input
+			type="text"
+			value={keymap.profileName ?? ''}
+			oninput={(e) => keymap.setProfileName((e.target as HTMLInputElement).value)}
+			placeholder="DisplayPad Configurator"
+			class="rounded-md bg-slate-800 px-2 py-1 text-white placeholder:text-slate-500"
+		/>
+	</label>
+
 	<button
 		type="button"
 		onclick={() => fileInput.click()}

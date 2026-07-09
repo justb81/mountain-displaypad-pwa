@@ -54,6 +54,11 @@ describe('parsing the real Base Camp export', () => {
 		expect(result.keys[0].face).toEqual({ type: 'color', color: '#000000' });
 		expect(result.warnings.some((w) => w.includes('M1') && w.includes("can't read"))).toBe(true);
 	});
+
+	it('carries the profile name and inline image through', () => {
+		expect(result.profileName).toBe('CPLACE');
+		expect(result.profileImage?.startsWith('data:image/png;base64,')).toBe(true);
+	});
 });
 
 describe('parsing malformed input', () => {
@@ -125,5 +130,21 @@ describe('exporting and re-importing', () => {
 
 	it('rejects a keys array of the wrong length', () => {
 		expect(() => serializeBasecampProfile([])).toThrow(RangeError);
+	});
+
+	it('round-trips a custom profile name and image instead of the hardcoded default', () => {
+		const source = keys({});
+		const { xml } = serializeBasecampProfile(source, {
+			profileName: 'My Profile',
+			profileImage: 'data:image/png;base64,AAAA'
+		});
+		const reimported = parseBasecampProfile(xml);
+		expect(reimported.profileName).toBe('My Profile');
+		expect(reimported.profileImage).toBe('data:image/png;base64,AAAA');
+	});
+
+	it('falls back to the default profile name when none is given', () => {
+		const { xml } = serializeBasecampProfile(keys({}));
+		expect(parseBasecampProfile(xml).profileName).toBe('DisplayPad Configurator');
 	});
 });
