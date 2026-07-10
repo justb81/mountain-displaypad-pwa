@@ -1,11 +1,21 @@
 <script lang="ts">
 	import CodeEditor from './CodeEditor.svelte';
+	import Button from './ui/Button.svelte';
+	import Hint from './ui/Hint.svelte';
+	import SegmentedControl from './ui/SegmentedControl.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { NUM_KEYS } from '$lib/displaypad/protocol.js';
 	import { removeImageBackground } from '$lib/displaypad/raster.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { templates } from '$lib/state/templates.svelte.js';
-	import { faceText, withFaceText, type KeyAction, type KeyTextStyle } from '$lib/types.js';
+	import { toast } from '$lib/state/toast.svelte.js';
+	import {
+		faceText,
+		withFaceText,
+		type KeyAction,
+		type KeyFace,
+		type KeyTextStyle
+	} from '$lib/types.js';
 
 	interface Props {
 		index: number;
@@ -18,6 +28,36 @@
 	const config = $derived(keymap.keys[index]);
 	const canApply = $derived(connection.status === 'connected');
 
+	const colorFace = $derived(config.face.type === 'color' ? config.face : undefined);
+	const imageFace = $derived(config.face.type === 'image' ? config.face : undefined);
+	const remoteFace = $derived(config.face.type === 'remote' ? config.face : undefined);
+	const templateFace = $derived(config.face.type === 'template' ? config.face : undefined);
+
+	/**
+	 * Which face type the Face segmented control shows. Diverges from `config.face.type`
+	 * only briefly: picking "Image"/"Remote" reveals that type's editor without touching
+	 * the key yet (an empty image/URL isn't a valid face), while "Color"/"Live" apply a
+	 * sensible default immediately (mirrors the old always-editable inputs' behavior).
+	 * The override is scoped to "the key currently open in the inspector" — it resets
+	 * whenever a different key is selected.
+	 */
+	let faceKindOverride = $state<KeyFace['type'] | null>(null);
+	const faceKind = $derived(faceKindOverride ?? config.face.type);
+	$effect(() => {
+		if (index >= 0) faceKindOverride = null;
+	});
+
+	let secondFaceKindOverride = $state<'color' | 'image' | null>(null);
+	const secondFaceKind = $derived(
+		secondFaceKindOverride ?? (config.secondFace?.type === 'image' ? 'image' : 'color')
+	);
+	$effect(() => {
+		if (index >= 0) secondFaceKindOverride = null;
+	});
+
+	let imageFileInput = $state<HTMLInputElement>();
+	let secondImageFileInput = $state<HTMLInputElement>();
+
 	let savingTemplate = $state(false);
 	let templateName = $state('');
 
@@ -27,8 +67,17 @@
 	}
 
 	async function confirmSaveTemplate() {
-		await templates.save(templateName.trim() || config.label, config, keymap.scriptsApproved);
+		const name = templateName.trim() || config.label;
+		await templates.save(name, config, keymap.scriptsApproved);
 		savingTemplate = false;
+		toast.success(`Saved "${name}" to the template stash.`);
+	}
+
+	async function applyToPad() {
+		await connection.applyKey(index);
+		const liveError = connection.liveFaceErrors[index];
+		if (liveError) toast.error(liveError);
+		else toast.success(`Applied Key ${index + 1} to the pad.`);
 	}
 
 	let removingBackground = $state(false);
@@ -103,6 +152,14 @@
 		connection.syncLiveTimer(index);
 	}
 
+	/** Drives the Face segmented control. Color/Live apply a default immediately; Image/Remote just switch the visible editor until real content is provided. */
+	function setFaceKind(kind: string) {
+		const next = kind as KeyFace['type'];
+		faceKindOverride = next;
+		if (next === 'color') setColor(config.face.type === 'color' ? config.face.color : '#000000');
+		else if (next === 'template') setTemplateFace();
+	}
+
 	function setTemplate(template: string) {
 		if (config.face.type !== 'template') return;
 		keymap.update(index, { face: { ...config.face, template } });
@@ -168,6 +225,15 @@
 		keymap.update(index, {
 			secondFace: enabled ? { type: 'color', color: '#000000' } : undefined
 		});
+	}
+
+	/** Drives the second-face segmented control (Color/Image only — no live sources for a toggle's flip side). */
+	function setSecondFaceKind(kind: string) {
+		const next = kind as 'color' | 'image';
+		secondFaceKindOverride = next;
+		if (next === 'color') {
+			setSecondColor(config.secondFace?.type === 'color' ? config.secondFace.color : '#000000');
+		}
 	}
 
 	function setSecondColor(color: string) {
@@ -310,253 +376,251 @@
 	});
 </script>
 
-<section class="flex flex-col gap-4 rounded-2xl bg-slate-800 p-5">
-	<header class="flex items-center justify-between">
-		<h2 class="text-lg font-semibold text-white">Key {index + 1}</h2>
+<section class="flex flex-col gap-5 rounded-panel bg-slate-800 p-5">
+	<header class="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+		<h2 class="text-h1 font-semibold text-white">Key {index + 1}</h2>
 		<div class="flex items-center gap-2">
-			<button
-				type="button"
+			<Button
+				size="sm"
 				onclick={() => moveTo(index - 1)}
 				disabled={index === 0}
 				aria-label="Move key left"
 				title="Move key left"
-				class="rounded border border-slate-600 px-2 py-1.5 text-sm text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
 			>
 				&larr;
-			</button>
-			<button
-				type="button"
+			</Button>
+			<Button
+				size="sm"
 				onclick={() => moveTo(index + 1)}
 				disabled={index === NUM_KEYS - 1}
 				aria-label="Move key right"
 				title="Move key right"
-				class="rounded border border-slate-600 px-2 py-1.5 text-sm text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
 			>
 				&rarr;
-			</button>
-			<button
-				type="button"
-				onclick={() => void connection.applyKey(index)}
-				disabled={!canApply}
-				class="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
-			>
+			</Button>
+			<Button variant="success" onclick={() => void applyToPad()} disabled={!canApply}>
 				Apply to pad
-			</button>
-			<button
-				type="button"
-				onclick={resetKey}
-				aria-label="Reset key"
-				title="Reset key to default"
-				class="rounded border border-slate-600 px-2 py-1.5 text-sm text-slate-200 hover:bg-slate-700"
-			>
+			</Button>
+			<Button size="sm" onclick={resetKey} aria-label="Reset key" title="Reset key to default">
 				Reset
-			</button>
+			</Button>
 		</div>
 	</header>
 
 	{#if savingTemplate}
-		<div class="flex items-center gap-2 text-sm">
+		<div class="flex items-center gap-2">
 			<input
-				class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+				class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 				placeholder="Template name"
 				value={templateName}
 				oninput={(e) => (templateName = e.currentTarget.value)}
 				onkeydown={(e) => e.key === 'Enter' && confirmSaveTemplate()}
 			/>
-			<button
-				type="button"
-				onclick={confirmSaveTemplate}
-				class="rounded bg-emerald-600 px-3 py-1.5 font-medium text-white hover:bg-emerald-500"
-			>
-				Save
-			</button>
-			<button
-				type="button"
-				onclick={() => (savingTemplate = false)}
-				class="rounded border border-slate-600 px-3 py-1.5 text-slate-200 hover:bg-slate-700"
-			>
-				Cancel
-			</button>
+			<Button variant="success" size="sm" onclick={confirmSaveTemplate}>Save</Button>
+			<Button size="sm" onclick={() => (savingTemplate = false)}>Cancel</Button>
 		</div>
 	{:else}
-		<button
-			type="button"
-			onclick={startSaveTemplate}
-			class="self-start rounded border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-700"
-		>
-			Save as template
-		</button>
+		<Button size="sm" class="self-start" onclick={startSaveTemplate}>Save as template</Button>
 	{/if}
 
-	<label class="flex flex-col gap-1 text-sm text-slate-300">
-		Label
+	<label class="flex flex-col gap-1 text-label text-slate-300">
+		<span class="font-medium text-slate-200">Label</span>
 		<input
-			class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-body text-white"
 			value={config.label}
 			oninput={(e) => keymap.update(index, { label: e.currentTarget.value })}
 		/>
 	</label>
 
-	<fieldset class="flex flex-col gap-2 text-sm text-slate-300">
-		<legend class="mb-1">Face</legend>
-		<label class="flex items-center gap-2">
-			<input
-				type="color"
-				value={config.face.type === 'color' ? config.face.color : '#000000'}
-				oninput={(e) => setColor(e.currentTarget.value)}
-			/>
-			Solid colour
-		</label>
-		<label class="flex items-center gap-2">
-			Image
-			<input type="file" accept="image/*" onchange={onFile} class="text-slate-400" />
-		</label>
-		{#if config.face.type === 'image'}
-			<div class="flex items-center gap-2">
-				<img src={config.face.dataUrl} alt="Key preview" class="h-16 w-16 rounded object-cover" />
-				<button
-					type="button"
-					onclick={() => void removeBackground()}
-					disabled={removingBackground}
-					class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-				>
-					{removingBackground ? 'Removing…' : 'Remove background'}
-				</button>
-			</div>
-		{/if}
-		{#if backgroundError}
-			<p class="pl-1 text-xs text-rose-400">{backgroundError}</p>
-		{/if}
-		<label class="flex items-center gap-2">
-			Remote URL
-			<input
-				type="url"
-				placeholder="https://example.com/face.png"
-				value={config.face.type === 'remote' ? config.face.url : ''}
-				oninput={(e) => setRemoteUrl(e.currentTarget.value)}
-				class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
-			/>
-		</label>
-		{#if config.face.type === 'remote'}
-			<div class="flex flex-wrap items-center gap-3 pl-1 text-xs text-slate-400">
-				<label class="flex items-center gap-1">
-					Refresh every
-					<input
-						type="number"
-						min="1"
-						placeholder="off"
-						value={config.face.refreshMinutes ?? ''}
-						oninput={(e) => setRemoteRefreshMinutes(Number(e.currentTarget.value))}
-						class="w-16 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
-					/>
-					min
-				</label>
-				<label class="flex items-center gap-1">
-					<input
-						type="checkbox"
-						checked={config.face.refreshOnPress ?? false}
-						onchange={(e) => setRemoteRefreshOnPress(e.currentTarget.checked)}
-					/>
-					Refresh on press
-				</label>
-			</div>
-			<p class="pl-1 text-xs text-slate-500">
-				Endpoint must allow cross-origin GET (CORS). SVG responses are rasterised to PNG.
-			</p>
-			{#if connection.liveFaceErrors[index]}
-				<p class="pl-1 text-xs text-rose-400">{connection.liveFaceErrors[index]}</p>
-			{/if}
-		{/if}
+	<fieldset class="flex flex-col gap-3 text-body text-slate-300">
+		<legend class="mb-1 text-h2 font-semibold text-white">Face</legend>
+		<SegmentedControl
+			name={`face-kind-${index}`}
+			value={faceKind}
+			onchange={setFaceKind}
+			options={[
+				{ value: 'color', label: 'Color' },
+				{ value: 'image', label: 'Image' },
+				{ value: 'remote', label: 'Remote' },
+				{ value: 'template', label: 'Live' }
+			]}
+		/>
 
-		<label class="flex items-center gap-2">
-			<input
-				type="checkbox"
-				checked={config.face.type === 'template'}
-				onchange={(e) => (e.currentTarget.checked ? setTemplateFace() : setColor('#000000'))}
-			/>
-			Template (transform + Mustache HTML, rendered to the key)
-		</label>
-		{#if config.face.type === 'template'}
-			<div class="flex flex-col gap-2 pl-1">
-				<label class="flex flex-col gap-1 text-xs text-slate-400">
-					Template (HTML + Mustache)
-					<CodeEditor value={config.face.template} language="handlebars" onChange={setTemplate} />
-				</label>
-				<label class="flex flex-col gap-1 text-xs text-slate-400">
-					Transform (optional sandboxed JS — has <code>fetch</code>, <code>Date</code>, and a
-					<code>ctx</code> argument; must return a plain object)
-					<CodeEditor
-						value={config.face.transform ?? ''}
-						language="javascript"
-						onChange={setTransform}
+		{#if faceKind === 'color'}
+			<div class="flex items-center gap-3">
+				<span class="h-10 w-10 flex-none overflow-hidden rounded-control border border-line">
+					<input
+						type="color"
+						class="h-[150%] w-[150%] -translate-x-1/4 -translate-y-1/4 cursor-pointer border-0 p-0"
+						value={colorFace?.color ?? '#000000'}
+						oninput={(e) => setColor(e.currentTarget.value)}
 					/>
-				</label>
-				<div class="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-					<label class="flex items-center gap-1">
+				</span>
+				<Hint>A solid colour fill for the whole key.</Hint>
+			</div>
+		{:else if faceKind === 'image'}
+			<div class="flex items-center gap-3">
+				{#if imageFace}
+					<img
+						src={imageFace.dataUrl}
+						alt="Key preview"
+						class="h-14 w-14 flex-none rounded-control border border-line object-cover"
+					/>
+				{:else}
+					<span
+						class="flex h-14 w-14 flex-none items-center justify-center rounded-control border border-dashed border-line-strong text-caption text-slate-500"
+					>
+						None
+					</span>
+				{/if}
+				<div class="flex flex-col items-start gap-1.5">
+					<Button size="sm" onclick={() => imageFileInput?.click()}>Choose image…</Button>
+					<input
+						bind:this={imageFileInput}
+						type="file"
+						accept="image/*"
+						onchange={onFile}
+						class="hidden"
+					/>
+					{#if imageFace}
+						<Button
+							size="sm"
+							variant="ghost"
+							onclick={() => void removeBackground()}
+							disabled={removingBackground}
+						>
+							{removingBackground ? 'Removing background…' : 'Remove background'}
+						</Button>
+					{/if}
+				</div>
+			</div>
+			{#if backgroundError}<Hint tone="danger">{backgroundError}</Hint>{/if}
+		{:else if faceKind === 'remote'}
+			<label class="flex flex-col gap-1">
+				<span class="text-label font-medium text-slate-200">Image URL</span>
+				<input
+					type="url"
+					placeholder="https://example.com/face.png"
+					value={remoteFace?.url ?? ''}
+					oninput={(e) => setRemoteUrl(e.currentTarget.value)}
+					class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+				/>
+			</label>
+			{#if remoteFace}
+				<div class="flex flex-wrap items-center gap-4 text-label text-slate-400">
+					<label class="flex items-center gap-1.5">
 						Refresh every
 						<input
 							type="number"
 							min="1"
 							placeholder="off"
-							value={config.face.refreshMinutes ?? ''}
-							oninput={(e) => setTemplateRefreshMinutes(Number(e.currentTarget.value))}
-							class="w-16 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+							value={remoteFace.refreshMinutes ?? ''}
+							oninput={(e) => setRemoteRefreshMinutes(Number(e.currentTarget.value))}
+							class="w-16 rounded-control border border-line bg-slate-900 px-1.5 py-1 text-white"
 						/>
 						min
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="checkbox"
-							checked={config.face.refreshOnPress ?? false}
-							onchange={(e) => setTemplateRefreshOnPress(e.currentTarget.checked)}
+							checked={remoteFace.refreshOnPress ?? false}
+							onchange={(e) => setRemoteRefreshOnPress(e.currentTarget.checked)}
 						/>
-						Refresh on press
+						<span>Refresh on press</span>
 					</label>
 				</div>
-				<p class="text-xs text-slate-500">
+				<Hint>
+					Endpoint must allow cross-origin GET (CORS). SVG responses are rasterised to PNG.
+				</Hint>
+				{#if connection.liveFaceErrors[index]}
+					<Hint tone="danger">{connection.liveFaceErrors[index]}</Hint>
+				{/if}
+			{/if}
+		{:else if faceKind === 'template' && templateFace}
+			<div class="flex flex-col gap-3">
+				<label class="flex flex-col gap-1">
+					<span class="text-label font-medium text-slate-200">Template (HTML + Mustache)</span>
+					<CodeEditor value={templateFace.template} language="handlebars" onChange={setTemplate} />
+				</label>
+				<label class="flex flex-col gap-1">
+					<span class="text-label font-medium text-slate-200">Transform (optional)</span>
+					<CodeEditor
+						value={templateFace.transform ?? ''}
+						language="javascript"
+						onChange={setTransform}
+					/>
+					<Hint>
+						Optional sandboxed async JS — has <code>fetch</code>, <code>Date</code>, and a
+						<code>ctx</code> argument; must return a plain object.
+					</Hint>
+				</label>
+				<div class="flex flex-wrap items-center gap-4 text-label text-slate-400">
+					<label class="flex items-center gap-1.5">
+						Refresh every
+						<input
+							type="number"
+							min="1"
+							placeholder="off"
+							value={templateFace.refreshMinutes ?? ''}
+							oninput={(e) => setTemplateRefreshMinutes(Number(e.currentTarget.value))}
+							class="w-16 rounded-control border border-line bg-slate-900 px-1.5 py-1 text-white"
+						/>
+						min
+					</label>
+					<label class="flex items-center gap-1.5">
+						<input
+							type="checkbox"
+							checked={templateFace.refreshOnPress ?? false}
+							onchange={(e) => setTemplateRefreshOnPress(e.currentTarget.checked)}
+						/>
+						<span>Refresh on press</span>
+					</label>
+				</div>
+				<Hint>
 					The transform runs in a sandboxed, opaque-origin iframe with no access to this app — only
 					<code>fetch</code> and <code>Date</code>. Its result is rendered through the template with
 					Mustache (<code>{'{{var}}'}</code> escapes HTML, <code>{'{{{var}}}'}</code> doesn't).
-				</p>
-				<p class="text-xs text-slate-500">
+				</Hint>
+				<Hint>
 					Size your root element to <code>width:100%;height:100%</code> (with
 					<code>box-sizing:border-box</code>) to cover the whole key — anything it doesn't reach
 					renders black, same as an unset key.
-				</p>
-				{#if config.face.transform && !keymap.scriptsApproved}
-					<p class="text-xs text-amber-400">
+				</Hint>
+				{#if templateFace.transform && !keymap.scriptsApproved}
+					<Hint tone="warning">
 						This script came from an imported profile and won't run until you approve it in Profile
 						tools.
-					</p>
+					</Hint>
 				{/if}
 				{#if connection.liveFaceErrors[index]}
-					<p class="text-xs text-rose-400">{connection.liveFaceErrors[index]}</p>
+					<Hint tone="danger">{connection.liveFaceErrors[index]}</Hint>
 				{/if}
 			</div>
 		{/if}
 	</fieldset>
 
 	{#if config.face.type !== 'template'}
-		<fieldset class="flex flex-col gap-2 text-sm text-slate-300">
-			<legend class="mb-1">Text label (burned onto the key)</legend>
+		<fieldset class="flex flex-col gap-2 text-body text-slate-300">
+			<legend class="mb-1 text-h2 font-semibold text-white">Text label (burned onto the key)</legend
+			>
 			<label class="flex items-center gap-2">
 				<input
 					type="checkbox"
 					checked={!!config.face.text}
 					onchange={(e) => toggleFaceText(e.currentTarget.checked)}
 				/>
-				Render a text label onto this face
+				<span>Render a text label onto this face</span>
 			</label>
 			{#if config.face.text}
 				<label class="flex items-center gap-2">
 					<input
-						class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+						class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 						value={config.face.text.text}
 						oninput={(e) => updateFaceText({ text: e.currentTarget.value })}
 					/>
 				</label>
-				<div class="flex flex-wrap items-center gap-3 pl-1 text-xs text-slate-400">
-					<label class="flex items-center gap-1">
+				<div class="flex flex-wrap items-center gap-4 pl-1 text-label text-slate-400">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="color"
 							value={config.face.text.color}
@@ -564,10 +628,10 @@
 						/>
 						Colour
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						Align
 						<select
-							class="rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+							class="rounded-control border border-line bg-slate-900 px-1.5 py-1 text-white"
 							value={config.face.text.align}
 							onchange={(e) =>
 								updateFaceText({ align: e.currentTarget.value as KeyTextStyle['align'] })}
@@ -577,7 +641,7 @@
 							<option value="bottom">Bottom</option>
 						</select>
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						Size
 						<input
 							type="number"
@@ -586,11 +650,11 @@
 							placeholder="14"
 							oninput={(e) =>
 								updateFaceText({ fontSize: Number(e.currentTarget.value) || undefined })}
-							class="w-14 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+							class="w-14 rounded-control border border-line bg-slate-900 px-1.5 py-1 text-white"
 						/>
 						px
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="checkbox"
 							checked={config.face.text.bold ?? false}
@@ -598,7 +662,7 @@
 						/>
 						Bold
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="checkbox"
 							checked={config.face.text.italic ?? false}
@@ -606,7 +670,7 @@
 						/>
 						Italic
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="checkbox"
 							checked={config.face.text.underline ?? false}
@@ -619,64 +683,96 @@
 		</fieldset>
 	{/if}
 
-	<fieldset class="flex flex-col gap-2 text-sm text-slate-300">
-		<legend class="mb-1">Toggle key (second face)</legend>
+	<fieldset class="flex flex-col gap-3 text-body text-slate-300">
+		<legend class="mb-1 text-h2 font-semibold text-white">Toggle key (second face)</legend>
 		<label class="flex items-center gap-2">
 			<input
 				type="checkbox"
 				checked={!!config.secondFace}
 				onchange={(e) => toggleSecondFace(e.currentTarget.checked)}
 			/>
-			Flip to a second face on each press
+			<span>Flip to a second face on each press</span>
 		</label>
 		{#if config.secondFace}
-			<label class="flex items-center gap-2">
-				<input
-					type="color"
-					value={config.secondFace.type === 'color' ? config.secondFace.color : '#000000'}
-					oninput={(e) => setSecondColor(e.currentTarget.value)}
-				/>
-				Solid colour
-			</label>
-			<label class="flex items-center gap-2">
-				Image
-				<input type="file" accept="image/*" onchange={onSecondFile} class="text-slate-400" />
-			</label>
-			{#if config.secondFace.type === 'image'}
-				<div class="flex items-center gap-2">
-					<img
-						src={config.secondFace.dataUrl}
-						alt="Second face preview"
-						class="h-16 w-16 rounded object-cover"
-					/>
-					<button
-						type="button"
-						onclick={() => void removeSecondBackground()}
-						disabled={removingSecondBackground}
-						class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-					>
-						{removingSecondBackground ? 'Removing…' : 'Remove background'}
-					</button>
+			<SegmentedControl
+				name={`second-face-kind-${index}`}
+				value={secondFaceKind}
+				onchange={setSecondFaceKind}
+				options={[
+					{ value: 'color', label: 'Color' },
+					{ value: 'image', label: 'Image' }
+				]}
+			/>
+
+			{#if secondFaceKind === 'color'}
+				<div class="flex items-center gap-3">
+					<span class="h-10 w-10 flex-none overflow-hidden rounded-control border border-line">
+						<input
+							type="color"
+							class="h-[150%] w-[150%] -translate-x-1/4 -translate-y-1/4 cursor-pointer border-0 p-0"
+							value={config.secondFace.type === 'color' ? config.secondFace.color : '#000000'}
+							oninput={(e) => setSecondColor(e.currentTarget.value)}
+						/>
+					</span>
+					<Hint>A solid colour fill shown after the key is pressed.</Hint>
+				</div>
+			{:else}
+				<div class="flex items-center gap-3">
+					{#if config.secondFace.type === 'image'}
+						<img
+							src={config.secondFace.dataUrl}
+							alt="Second face preview"
+							class="h-14 w-14 flex-none rounded-control border border-line object-cover"
+						/>
+					{:else}
+						<span
+							class="flex h-14 w-14 flex-none items-center justify-center rounded-control border border-dashed border-line-strong text-caption text-slate-500"
+						>
+							None
+						</span>
+					{/if}
+					<div class="flex flex-col items-start gap-1.5">
+						<Button size="sm" onclick={() => secondImageFileInput?.click()}>Choose image…</Button>
+						<input
+							bind:this={secondImageFileInput}
+							type="file"
+							accept="image/*"
+							onchange={onSecondFile}
+							class="hidden"
+						/>
+						{#if config.secondFace.type === 'image'}
+							<Button
+								size="sm"
+								variant="ghost"
+								onclick={() => void removeSecondBackground()}
+								disabled={removingSecondBackground}
+							>
+								{removingSecondBackground ? 'Removing background…' : 'Remove background'}
+							</Button>
+						{/if}
+					</div>
 				</div>
 			{/if}
+			{#if backgroundError}<Hint tone="danger">{backgroundError}</Hint>{/if}
+
 			<label class="flex items-center gap-2">
 				<input
 					type="checkbox"
 					checked={!!faceText(config.secondFace)}
 					onchange={(e) => toggleSecondFaceText(e.currentTarget.checked)}
 				/>
-				Render a text label onto this face
+				<span>Render a text label onto this face</span>
 			</label>
 			{#if config.secondFace.type !== 'template' && config.secondFace.text}
 				<label class="flex items-center gap-2">
 					<input
-						class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+						class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 						value={config.secondFace.text.text}
 						oninput={(e) => updateSecondFaceText({ text: e.currentTarget.value })}
 					/>
 				</label>
-				<div class="flex flex-wrap items-center gap-3 pl-1 text-xs text-slate-400">
-					<label class="flex items-center gap-1">
+				<div class="flex flex-wrap items-center gap-4 pl-1 text-label text-slate-400">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="color"
 							value={config.secondFace.text.color}
@@ -684,10 +780,10 @@
 						/>
 						Colour
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						Align
 						<select
-							class="rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+							class="rounded-control border border-line bg-slate-900 px-1.5 py-1 text-white"
 							value={config.secondFace.text.align}
 							onchange={(e) =>
 								updateSecondFaceText({ align: e.currentTarget.value as KeyTextStyle['align'] })}
@@ -697,7 +793,7 @@
 							<option value="bottom">Bottom</option>
 						</select>
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						Size
 						<input
 							type="number"
@@ -706,11 +802,11 @@
 							placeholder="14"
 							oninput={(e) =>
 								updateSecondFaceText({ fontSize: Number(e.currentTarget.value) || undefined })}
-							class="w-14 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+							class="w-14 rounded-control border border-line bg-slate-900 px-1.5 py-1 text-white"
 						/>
 						px
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="checkbox"
 							checked={config.secondFace.text.bold ?? false}
@@ -718,7 +814,7 @@
 						/>
 						Bold
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="checkbox"
 							checked={config.secondFace.text.italic ?? false}
@@ -727,7 +823,7 @@
 						/>
 						Italic
 					</label>
-					<label class="flex items-center gap-1">
+					<label class="flex items-center gap-1.5">
 						<input
 							type="checkbox"
 							checked={config.secondFace.text.underline ?? false}
@@ -741,10 +837,10 @@
 		{/if}
 	</fieldset>
 
-	<label class="flex flex-col gap-1 text-sm text-slate-300">
-		Action
+	<label class="flex flex-col gap-1 text-body text-slate-300">
+		<span class="text-h2 font-semibold text-white">Action</span>
 		<select
-			class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 			value={config.action.type}
 			onchange={(e) => setActionType(e.currentTarget.value as KeyAction['type'])}
 		>
@@ -759,7 +855,7 @@
 
 	{#if config.action.type === 'open-url'}
 		<input
-			class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 			placeholder="https://example.com"
 			value={config.action.url}
 			oninput={(e) =>
@@ -767,42 +863,34 @@
 		/>
 	{:else if config.action.type === 'copy-text'}
 		<input
-			class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 			placeholder="Text to copy"
 			value={config.action.text}
 			oninput={(e) =>
 				keymap.update(index, { action: { type: 'copy-text', text: e.currentTarget.value } })}
 		/>
 	{:else if config.action.type === 'open-folder'}
-		<div class="flex items-center gap-2 text-sm text-slate-300">
+		<div class="flex items-center gap-2 text-body text-slate-300">
 			<select
-				class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+				class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 				value={config.action.page}
 				onchange={(e) => setFolderTarget(Number(e.currentTarget.value))}
 			>
 				{#each Array.from({ length: keymap.pageCount }, (_, i) => i) as pageIndex (pageIndex)}
-					<option value={pageIndex}>Page {pageIndex + 1}{pageIndex === 0 ? ' (home)' : ''}</option>
+					<option value={pageIndex}>{keymap.pageName(pageIndex)}</option>
 				{/each}
 			</select>
-			<button
-				type="button"
-				onclick={() => setFolderTarget(keymap.addPage())}
-				class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
-			>
-				+ New page
-			</button>
+			<Button size="sm" onclick={() => setFolderTarget(keymap.addPage())}>+ New page</Button>
 		</div>
 	{:else if config.action.type === 'back'}
-		<p class="text-xs text-slate-500">
-			Returns to whichever page this key's folder was entered from.
-		</p>
+		<Hint>Returns to whichever page this key's folder was entered from.</Hint>
 	{:else if config.action.type === 'webhook'}
-		<div class="flex flex-col gap-2 text-sm text-slate-300">
+		<div class="flex flex-col gap-3 text-body text-slate-300">
 			<div class="flex gap-2">
 				<label class="flex flex-col gap-1">
-					Method
+					<span class="text-label font-medium text-slate-200">Method</span>
 					<select
-						class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+						class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 						value={config.action.method}
 						onchange={(e) => updateWebhook({ method: e.currentTarget.value as 'GET' | 'POST' })}
 					>
@@ -811,43 +899,40 @@
 					</select>
 				</label>
 				<label class="flex min-w-0 flex-1 flex-col gap-1">
-					URL
+					<span class="text-label font-medium text-slate-200">URL</span>
 					<input
 						type="url"
 						placeholder="https://example.com/webhook"
 						value={config.action.url}
 						oninput={(e) => updateWebhook({ url: e.currentTarget.value })}
-						class="min-w-0 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+						class="min-w-0 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 					/>
 				</label>
 			</div>
 
 			{#if config.action.method === 'POST'}
 				<label class="flex flex-col gap-1">
-					JSON body
+					<span class="text-label font-medium text-slate-200">JSON body</span>
 					<textarea
 						rows="4"
 						placeholder={'{\n  "on": true\n}'}
 						value={config.action.body ?? ''}
 						oninput={(e) => updateWebhook({ body: e.currentTarget.value })}
-						class="rounded border border-slate-600 bg-slate-900 px-2 py-1 font-mono text-white"
+						class="rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
 					></textarea>
 				</label>
-				{#if bodyError}
-					<p class="text-xs text-rose-400">Invalid JSON: {bodyError}</p>
-				{/if}
+				{#if bodyError}<Hint tone="danger">Invalid JSON: {bodyError}</Hint>{/if}
 			{/if}
 
 			<label class="flex flex-col gap-1">
-				Custom headers <span class="text-xs text-slate-500"
-					>(one <code>Name: Value</code> per line)</span
-				>
+				<span class="text-label font-medium text-slate-200">Custom headers</span>
+				<Hint>One <code>Name: Value</code> per line.</Hint>
 				<textarea
 					rows="2"
 					placeholder="Authorization: Bearer …"
 					value={headersText}
 					oninput={(e) => setHeaders(e.currentTarget.value)}
-					class="rounded border border-slate-600 bg-slate-900 px-2 py-1 font-mono text-white"
+					class="rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
 				></textarea>
 			</label>
 
@@ -857,12 +942,13 @@
 					checked={config.action.noCors ?? false}
 					onchange={(e) => updateWebhook({ noCors: e.currentTarget.checked || undefined })}
 				/>
-				Fire-and-forget (<code>no-cors</code>) — for trigger-only endpoints without CORS
+				<span>Fire-and-forget (<code>no-cors</code>) — for trigger-only endpoints without CORS</span
+				>
 			</label>
-			<p class="text-xs text-slate-500">
+			<Hint>
 				The request goes straight from your browser. A cross-origin endpoint must send CORS headers,
 				or enable <code>no-cors</code> above (the response is then unreadable).
-			</p>
+			</Hint>
 		</div>
 	{/if}
 </section>

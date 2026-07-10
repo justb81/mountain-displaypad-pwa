@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import Toast from '$lib/components/ui/Toast.svelte';
 	import { browser, dev, version } from '$app/environment';
 	import { updateStatus } from '$lib/state/update.svelte.js';
 
@@ -43,3 +44,5 @@
 {/if}
 
 {@render children()}
+
+<Toast />
