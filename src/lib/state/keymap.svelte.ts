@@ -99,6 +99,12 @@ class Keymap {
 		this.persist();
 	}
 
+	/** Restore one key (on the active page) to its default label/face/action and persist. */
+	resetKey(index: number): void {
+		this.keys[index] = defaultKey(index);
+		this.persist();
+	}
+
 	/** Restore the keymap to a single default page and persist. */
 	reset(): void {
 		this.pages = [defaultPage()];

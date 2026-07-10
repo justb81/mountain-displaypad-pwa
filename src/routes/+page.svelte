@@ -9,7 +9,20 @@
 	import { keymap } from '$lib/state/keymap.svelte.js';
 
 	let selected = $state(0);
+
+	/** Reset the selected key on Delete, unless the keypress belongs to a text field/editor. */
+	function onWindowKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Delete') return;
+		const target = event.target as HTMLElement | null;
+		if (target?.isContentEditable) return;
+		const tag = target?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+		keymap.resetKey(selected);
+		connection.syncLiveTimer(selected);
+	}
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} />
 
 <svelte:head>
 	<title>DisplayPad Configurator</title>
