@@ -74,12 +74,22 @@
 		connection.syncLiveTimer(index);
 	}
 
+	/**
+	 * Starter HTML for a freshly-enabled template face: sized to fill the key
+	 * (`width/height:100%` + `border-box`) so it renders correctly out of the
+	 * box — a bare `<div>` without these defaults to its content's natural
+	 * size, leaving the rest of the key uncovered (black once applied).
+	 */
+	const TEMPLATE_STARTER = `<div style="width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-family:sans-serif;text-align:center;">
+  Hello
+</div>`;
+
 	function setTemplateFace() {
 		const current = config.face.type === 'template' ? config.face : undefined;
 		keymap.update(index, {
 			face: {
 				type: 'template',
-				template: current?.template ?? '',
+				template: current?.template ?? TEMPLATE_STARTER,
 				transform: current?.transform,
 				refreshMinutes: current?.refreshMinutes,
 				refreshOnPress: current?.refreshOnPress
@@ -493,6 +503,11 @@
 					The transform runs in a sandboxed, opaque-origin iframe with no access to this app — only
 					<code>fetch</code> and <code>Date</code>. Its result is rendered through the template with
 					Mustache (<code>{'{{var}}'}</code> escapes HTML, <code>{'{{{var}}}'}</code> doesn't).
+				</p>
+				<p class="text-xs text-slate-500">
+					Size your root element to <code>width:100%;height:100%</code> (with
+					<code>box-sizing:border-box</code>) to cover the whole key — anything it doesn't
+					reach renders black, same as an unset key.
 				</p>
 				{#if config.face.transform && !keymap.scriptsApproved}
 					<p class="text-xs text-amber-400">
