@@ -139,8 +139,16 @@
 					? { type, text: '' }
 					: type === 'webhook'
 						? { type, method: 'POST', url: '' }
-						: { type: 'none' };
+						: type === 'open-folder'
+							? { type, page: keymap.addPage() }
+							: type === 'back'
+								? { type }
+								: { type: 'none' };
 		keymap.update(index, { action });
+	}
+
+	function setFolderTarget(page: number) {
+		keymap.update(index, { action: { type: 'open-folder', page } });
 	}
 
 	/** Merge a patch into the current webhook action (no-op if the action isn't a webhook). */
@@ -393,6 +401,8 @@
 			<option value="open-url">Open URL</option>
 			<option value="copy-text">Copy text</option>
 			<option value="webhook">Webhook (HTTP request)</option>
+			<option value="open-folder">Open folder (jump to another page)</option>
+			<option value="back">Back (return to the previous page)</option>
 		</select>
 	</label>
 
@@ -412,6 +422,29 @@
 			oninput={(e) =>
 				keymap.update(index, { action: { type: 'copy-text', text: e.currentTarget.value } })}
 		/>
+	{:else if config.action.type === 'open-folder'}
+		<div class="flex items-center gap-2 text-sm text-slate-300">
+			<select
+				class="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+				value={config.action.page}
+				onchange={(e) => setFolderTarget(Number(e.currentTarget.value))}
+			>
+				{#each Array.from({ length: keymap.pageCount }, (_, i) => i) as pageIndex (pageIndex)}
+					<option value={pageIndex}>Page {pageIndex + 1}{pageIndex === 0 ? ' (home)' : ''}</option>
+				{/each}
+			</select>
+			<button
+				type="button"
+				onclick={() => setFolderTarget(keymap.addPage())}
+				class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
+			>
+				+ New page
+			</button>
+		</div>
+	{:else if config.action.type === 'back'}
+		<p class="text-xs text-slate-500">
+			Returns to whichever page this key's folder was entered from.
+		</p>
 	{:else if config.action.type === 'webhook'}
 		<div class="flex flex-col gap-2 text-sm text-slate-300">
 			<div class="flex gap-2">
