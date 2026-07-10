@@ -6,7 +6,8 @@
  */
 
 import { browser } from '$app/environment';
-import { downscaleToDataUrl } from '$lib/displaypad/raster.js';
+import { downscaleToDataUrl, pixelsToDataUrl } from '$lib/displaypad/raster.js';
+import { fetchTemplateFace } from '$lib/displaypad/template.js';
 import type { KeyConfig, KeyFace } from '$lib/types.js';
 
 const STORAGE_KEY = 'displaypad.templates.v1';
@@ -18,11 +19,29 @@ export interface Template {
 	id: string;
 	name: string;
 	config: KeyConfig;
+	/**
+	 * Snapshot of a `template` face's rendered output at the moment it was stashed, so the
+	 * stash tray can show a thumbnail without re-running a (possibly stale-by-then, and for
+	 * an unapproved transform unsafe-to-run) live render. `undefined` for every other face
+	 * type, and for a `template` face whose render failed or whose transform wasn't approved.
+	 */
+	previewDataUrl?: string;
 }
 
 async function shrinkFace(face: KeyFace): Promise<KeyFace> {
 	if (face.type !== 'image' || !browser) return face;
 	return { ...face, dataUrl: await downscaleToDataUrl(face.dataUrl) };
+}
+
+/** Render a `template` face's current output to a data URL for the stash thumbnail — `undefined` if that isn't possible or safe right now. */
+async function renderPreview(face: KeyFace, scriptsApproved: boolean): Promise<string | undefined> {
+	if (face.type !== 'template' || !browser) return undefined;
+	if (face.transform && !scriptsApproved) return undefined;
+	try {
+		return pixelsToDataUrl(await fetchTemplateFace(face));
+	} catch {
+		return undefined;
+	}
 }
 
 class Templates {
@@ -32,8 +51,13 @@ class Templates {
 		if (browser) this.load();
 	}
 
-	/** Save a copy of `config` as a new named template (image faces downscaled to icon size) and persist. */
-	async save(name: string, config: KeyConfig): Promise<Template> {
+	/**
+	 * Save a copy of `config` as a new named template (image faces downscaled to icon size,
+	 * a template face's current render captured as its thumbnail) and persist. `scriptsApproved`
+	 * mirrors `connection`/`templatePreview`'s gate: an unapproved transform is never run, even
+	 * just to produce a thumbnail.
+	 */
+	async save(name: string, config: KeyConfig, scriptsApproved: boolean): Promise<Template> {
 		const template: Template = {
 			id: crypto.randomUUID(),
 			name,
@@ -41,7 +65,8 @@ class Templates {
 				...config,
 				face: await shrinkFace(config.face),
 				secondFace: config.secondFace && (await shrinkFace(config.secondFace))
-			}
+			},
+			previewDataUrl: await renderPreview(config.face, scriptsApproved)
 		};
 		this.items = [...this.items, template];
 		this.persist();

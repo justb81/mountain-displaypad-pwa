@@ -27,7 +27,7 @@
 	}
 
 	async function confirmSaveTemplate() {
-		await templates.save(templateName.trim() || config.label, config);
+		await templates.save(templateName.trim() || config.label, config, keymap.scriptsApproved);
 		savingTemplate = false;
 	}
 
