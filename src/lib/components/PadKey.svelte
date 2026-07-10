@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { keymap } from '$lib/state/keymap.svelte.js';
+	import { templatePreview } from '$lib/state/templatePreview.svelte.js';
 	import { TEMPLATE_DRAG_MIME } from '$lib/state/templates.svelte.js';
 	import type { KeyConfig } from '$lib/types.js';
 
@@ -26,6 +28,15 @@
 	const background = $derived(activeFace.type === 'color' ? activeFace.color : undefined);
 	const image = $derived(activeFace.type === 'image' ? activeFace.dataUrl : undefined);
 	const isRemote = $derived(activeFace.type === 'remote');
+	const isTemplate = $derived(activeFace.type === 'template');
+	const templateImage = $derived(isTemplate ? templatePreview.images[index] : undefined);
+	const templateError = $derived(isTemplate ? templatePreview.errors[index] : undefined);
+	const previewImage = $derived(image ?? templateImage ?? undefined);
+
+	/** Keep this tile's template render current: re-render whenever its face (or script approval) changes. */
+	$effect(() => {
+		templatePreview.scheduleRender(index, config.face, keymap.scriptsApproved);
+	});
 
 	let dragOver = $state(false);
 
@@ -94,7 +105,7 @@
 			: 'border-slate-700 hover:border-slate-500'}
 		{pressed ? 'scale-95 brightness-125' : ''}"
 	style:background-color={background}
-	style:background-image={image ? `url(${image})` : undefined}
+	style:background-image={previewImage ? `url(${previewImage})` : undefined}
 >
 	{#if isRemote}
 		<span
@@ -102,6 +113,16 @@
 			title="Remote face"
 		>
 			&#8635;
+		</span>
+	{/if}
+	{#if isTemplate}
+		<span
+			class="absolute top-1 right-1 rounded bg-black/50 px-1 py-0.5 text-[10px] {templateError
+				? 'text-rose-400'
+				: ''}"
+			title={templateError ?? 'Template face'}
+		>
+			{'{}'}
 		</span>
 	{/if}
 	<span class="rounded bg-black/50 px-1 py-0.5">{config.label}</span>
