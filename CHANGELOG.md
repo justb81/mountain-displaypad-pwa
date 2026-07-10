@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.4.1...mountain-displaypad-v0.4.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* Stashed template-face keys show a snapshot instead of a blank swatch ([#44](https://github.com/justb81/mountain-displaypad-pwa/issues/44)) ([9e58de8](https://github.com/justb81/mountain-displaypad-pwa/commit/9e58de8812c45a65a97d2871edbe69bda226a4bd))
+
 ## [0.4.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.4.0...mountain-displaypad-v0.4.1) (2026-07-10)
 
 
