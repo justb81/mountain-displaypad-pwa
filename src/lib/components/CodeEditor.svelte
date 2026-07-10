@@ -18,7 +18,7 @@
 	let { value, language, onChange }: Props = $props();
 
 	let container = $state<HTMLDivElement>();
-	let jar: import('codejar').CodeJar | undefined;
+	let jar = $state<import('codejar').CodeJar>();
 
 	$effect(() => {
 		let cancelled = false;
@@ -62,8 +62,14 @@
 	});
 
 	// Re-seed the editor when `value` changes from outside (e.g. a different key selected).
+	// Both reads must happen unconditionally so Svelte tracks `value` as a dependency even
+	// while `jar` is still undefined (CodeJar loads asynchronously) — short-circuiting on
+	// `jar &&` before reading `value` would otherwise skip that read on the first run and
+	// the effect would never rerun when `value` changes afterwards.
 	$effect(() => {
-		if (jar && jar.toString() !== value) jar.updateCode(value);
+		const editor = jar;
+		const latest = value;
+		if (editor && editor.toString() !== latest) editor.updateCode(latest);
 	});
 </script>
 
