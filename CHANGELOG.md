@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.4.2...mountain-displaypad-v0.5.0) (2026-07-10)
+
+
+### Features
+
+* **ux:** UX overhaul: design system, progressive disclosure, and fixed rendering bugs ([#50](https://github.com/justb81/mountain-displaypad-pwa/issues/50)) ([6d98d8e](https://github.com/justb81/mountain-displaypad-pwa/commit/6d98d8eb741e7305c4d5a03f7e5c8027151613bf))
+
 ## [0.4.2](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.4.1...mountain-displaypad-v0.4.2) (2026-07-10)
 
 
