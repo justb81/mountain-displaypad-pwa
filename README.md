@@ -36,24 +36,24 @@ This configurator does all of that from a browser tab. There is **no companion a
 - 🔤 **Burned-on text labels** — add a caption to any colour/image/remote face with per-key colour, alignment, size, and bold/italic/underline.
 - ⚡ **Rich press actions** — open a URL, copy text, fire an HTTP **webhook**, or jump between pages (see [Actions](#actions)).
 - 🔁 **Toggle keys** — give a key a second face and it flips between the two on every press (mic mute/unmute, scene A/B, …).
-- 🗂️ **Pages & folders** — organise keys across multiple pages; an *Open folder* key jumps to another page and *Back* returns, mirroring Base Camp's folders. Rename pages and navigate them from the breadcrumb tabs.
+- 🗂️ **Pages & folders** — organise keys across multiple pages; an _Open folder_ key jumps to another page and _Back_ returns, mirroring Base Camp's folders. Rename pages and navigate them from the breadcrumb tabs.
 - 🖱️ **Drag & drop + template stash** — drag one key onto another to swap (hold ⌘/Ctrl to copy), and save any key's full setup to a reusable stash you can drop onto other keys.
 - 📄 **Base Camp import/export** — read and write Mountain Base Camp `<Profile>` XML, so configs move both ways with the official software (see [Base Camp import/export](#base-camp-importexport)).
 - ✂️ **Remove background** — one click knocks the flat background colour out of an uploaded icon.
 - 💾 **Remembers everything** — your keymap, pages, and stash persist in the browser, and a previously-approved pad reconnects silently on the next visit.
 - 📲 **Installable & offline** — a proper PWA with a service worker; install it and it launches and runs without a network.
-- 🔒 **Private by design** — client-only, no backend, no telemetry. Nothing you configure ever leaves your machine unless *you* point a key at a URL.
+- 🔒 **Private by design** — client-only, no backend, no telemetry. Nothing you configure ever leaves your machine unless _you_ point a key at a URL.
 
 ## Key faces
 
-Each key's picture — its **face** — is one of four types, switched from the *Face* control in the inspector.
+Each key's picture — its **face** — is one of four types, switched from the _Face_ control in the inspector.
 
-| Face | What it is |
-| --- | --- |
-| **Color** | A solid fill, optionally with a burned-on text label. |
-| **Image** | Any square image you upload, scaled to 102×102. Includes a one-click *remove background*. |
-| **Remote** | An image fetched from a URL and refreshed on a timer or on press — a live status icon, a camera thumbnail, a weather glyph. |
-| **Live** | A **template**: HTML rendered through [Mustache](https://mustache.github.io/), fed by an optional sandboxed JavaScript transform. |
+| Face       | What it is                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Color**  | A solid fill, optionally with a burned-on text label.                                                                             |
+| **Image**  | Any square image you upload, scaled to 102×102. Includes a one-click _remove background_.                                         |
+| **Remote** | An image fetched from a URL and refreshed on a timer or on press — a live status icon, a camera thumbnail, a weather glyph.       |
+| **Live**   | A **template**: HTML rendered through [Mustache](https://mustache.github.io/), fed by an optional sandboxed JavaScript transform. |
 
 ### Live templates
 
@@ -66,11 +66,13 @@ A **live** face turns a key into a tiny, self-updating widget. You write a snipp
 The clock tile above is just this:
 
 ```html
-<div style="width:100%;height:100%;display:flex;flex-direction:column;
+<div
+	style="width:100%;height:100%;display:flex;flex-direction:column;
             align-items:center;justify-content:center;
-            background:linear-gradient(135deg,#0ea5e9,#1e3a8a);color:#fff">
-  <div style="font-size:30px;font-weight:800">{{time}}</div>
-  <div style="font-size:15px;opacity:.85">{{day}}</div>
+            background:linear-gradient(135deg,#0ea5e9,#1e3a8a);color:#fff"
+>
+	<div style="font-size:30px;font-weight:800">{{time}}</div>
+	<div style="font-size:15px;opacity:.85">{{day}}</div>
 </div>
 ```
 
@@ -88,13 +90,13 @@ The transform runs in an **opaque-origin `sandbox="allow-scripts"` iframe** with
 
 Assign what a key does when it's pressed. Because everything happens in the page, actions are the ones a browser can safely perform:
 
-| Action | Effect |
-| --- | --- |
-| **Open URL** | Opens a link in a new tab. |
-| **Copy text** | Writes a string to the clipboard. |
-| **Webhook** | Fires a `GET`/`POST` request with custom headers and a JSON body — toggle a smart light, kick a CI job, switch an OBS scene. A `no-cors` fire-and-forget mode covers trigger-only endpoints. |
-| **Open folder** | Jumps the whole pad to another page of 12 keys. |
-| **Back** | Returns to the page the folder was entered from. |
+| Action          | Effect                                                                                                                                                                                       |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Open URL**    | Opens a link in a new tab.                                                                                                                                                                   |
+| **Copy text**   | Writes a string to the clipboard.                                                                                                                                                            |
+| **Webhook**     | Fires a `GET`/`POST` request with custom headers and a JSON body — toggle a smart light, kick a CI job, switch an OBS scene. A `no-cors` fire-and-forget mode covers trigger-only endpoints. |
+| **Open folder** | Jumps the whole pad to another page of 12 keys.                                                                                                                                              |
+| **Back**        | Returns to the page the folder was entered from.                                                                                                                                             |
 
 <div align="center">
 <img src="docs/images/inspector-webhook.png" alt="The key inspector for a webhook action, showing method, URL, a JSON body, custom headers, and a fire-and-forget no-cors option." width="380" />
@@ -122,15 +124,15 @@ Open the app, click **Connect DisplayPad**, and pick the device in the browser's
 
 ### Scripts
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Dev server (WebHID needs `localhost`/HTTPS in Chromium). |
-| `npm run build` | Static production build → `build/` (adapter-static). |
-| `npm run preview` | Serve the production build locally. |
-| `npm run check` | Type-check (`svelte-kit sync` + `svelte-check`). |
-| `npm test` | Run the unit tests once. |
-| `npm run lint` | Prettier `--check` + ESLint. |
-| `npm run format` | Prettier `--write`. |
+| Command           | What it does                                             |
+| ----------------- | -------------------------------------------------------- |
+| `npm run dev`     | Dev server (WebHID needs `localhost`/HTTPS in Chromium). |
+| `npm run build`   | Static production build → `build/` (adapter-static).     |
+| `npm run preview` | Serve the production build locally.                      |
+| `npm run check`   | Type-check (`svelte-kit sync` + `svelte-check`).         |
+| `npm test`        | Run the unit tests once.                                 |
+| `npm run lint`    | Prettier `--check` + ESLint.                             |
+| `npm run format`  | Prettier `--write`.                                      |
 
 ## How it works
 
