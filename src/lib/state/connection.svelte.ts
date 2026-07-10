@@ -10,7 +10,7 @@ import { browser } from '$app/environment';
 import { DisplayPad, type KeyEventDetail } from '$lib/displaypad/device.js';
 import { hexToRgb } from '$lib/displaypad/image.js';
 import { fetchRemoteFace } from '$lib/displaypad/liveface.js';
-import { rasterize } from '$lib/displaypad/raster.js';
+import { rasterize, rasterizeColor } from '$lib/displaypad/raster.js';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
 import type { ConnectionStatus, KeyAction } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
@@ -113,15 +113,19 @@ class Connection {
 		const config = keymap.keys[index];
 		const face = this.toggled[index] && config.secondFace ? config.secondFace : config.face;
 		if (face.type === 'color') {
-			this.pad.setKeyColor(index, ...hexToRgb(face.color));
+			if (face.text?.text.trim()) {
+				this.pad.setKeyImage(index, rasterizeColor(face.color, face.text));
+			} else {
+				this.pad.setKeyColor(index, ...hexToRgb(face.color));
+			}
 			return;
 		}
 		if (face.type === 'image') {
-			this.pad.setKeyImage(index, await rasterize(face.dataUrl));
+			this.pad.setKeyImage(index, await rasterize(face.dataUrl, undefined, face.text));
 			return;
 		}
 		try {
-			this.pad.setKeyImage(index, await fetchRemoteFace(face.url));
+			this.pad.setKeyImage(index, await fetchRemoteFace(face.url, undefined, face.text));
 			this.liveFaceErrors[index] = null;
 		} catch (err) {
 			this.liveFaceErrors[index] = err instanceof Error ? err.message : String(err);

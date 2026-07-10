@@ -28,12 +28,32 @@ export type KeyAction =
 			type: 'back';
 	  };
 
+/** Vertical placement of a {@link KeyTextStyle} label, matching Base Camp's `TextAlign`. */
+export type TextAlign = 'top' | 'center' | 'bottom';
+
+/**
+ * A text label burned onto a key face, mirroring Base Camp's per-key `OptionalText`/
+ * `SecondOptionalText` style block. Rendered onto the 102x102 buffer on apply.
+ */
+export interface KeyTextStyle {
+	text: string;
+	color: string;
+	align: TextAlign;
+	fontFamily?: string;
+	/** Font size in pixels at the pad's native 102x102 resolution. */
+	fontSize?: number;
+	bold?: boolean;
+	italic?: boolean;
+	underline?: boolean;
+}
+
 /** How a key renders on the physical pad. */
 export type KeyFace =
-	| { type: 'color'; color: string }
+	| { type: 'color'; color: string; text?: KeyTextStyle }
 	| {
 			type: 'image';
 			/** data URL of a square image, scaled to 102x102 on apply */ dataUrl: string;
+			text?: KeyTextStyle;
 	  }
 	| {
 			type: 'remote';
@@ -43,6 +63,7 @@ export type KeyFace =
 			refreshMinutes?: number;
 			/** Refetch (and re-apply) whenever this key is pressed. */
 			refreshOnPress?: boolean;
+			text?: KeyTextStyle;
 	  };
 
 /** Full user-facing configuration for one of the 12 keys. */

@@ -10,9 +10,14 @@
 
 import { ICON_SIZE } from './protocol.js';
 import { rasterize } from './raster.js';
+import type { KeyTextStyle } from '$lib/types.js';
 
-/** Fetch `url`, sniff its content type, and rasterise the result to `size`x`size`. */
-export async function fetchRemoteFace(url: string, size = ICON_SIZE): Promise<Uint8ClampedArray> {
+/** Fetch `url`, sniff its content type, and rasterise the result (with an optional text overlay) to `size`x`size`. */
+export async function fetchRemoteFace(
+	url: string,
+	size = ICON_SIZE,
+	text?: KeyTextStyle
+): Promise<Uint8ClampedArray> {
 	const response = await fetch(url, { mode: 'cors', cache: 'no-store' });
 	if (!response.ok) {
 		throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
@@ -25,7 +30,7 @@ export async function fetchRemoteFace(url: string, size = ICON_SIZE): Promise<Ui
 
 	const objectUrl = URL.createObjectURL(blob);
 	try {
-		return await rasterize(objectUrl, size);
+		return await rasterize(objectUrl, size, text);
 	} finally {
 		URL.revokeObjectURL(objectUrl);
 	}

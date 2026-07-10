@@ -13,7 +13,7 @@
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-import type { KeyAction, KeyConfig, KeyFace } from '$lib/types.js';
+import type { KeyAction, KeyConfig, KeyFace, KeyTextStyle, TextAlign } from '$lib/types.js';
 
 /** Result of importing a Base Camp profile: every page plus what didn't survive. */
 export interface BasecampImportResult {
@@ -66,7 +66,76 @@ interface RawBinding {
 	base64Image?: string;
 	OptionalText?: string;
 	SecondBase64Image?: string;
+	SecondOptionalText?: string;
 	IsFirstImageSelected?: boolean;
+}
+
+/** The fields of Base Camp's `OptionalText`/`SecondOptionalText` JSON blob we round-trip. */
+interface RawTextStyle {
+	TextAlign?: string;
+	TextTitle?: string;
+	TextFontFamily?: string;
+	TextFontSize?: string | number;
+	TextBold?: boolean;
+	TextItalic?: boolean;
+	TextUnderline?: boolean;
+	TextColor?: string;
+}
+
+const TEXT_ALIGN_FROM_BASECAMP: Record<string, TextAlign> = {
+	Top: 'top',
+	Center: 'center',
+	Bottom: 'bottom'
+};
+
+const TEXT_ALIGN_TO_BASECAMP: Record<TextAlign, string> = {
+	top: 'Top',
+	center: 'Center',
+	bottom: 'Bottom'
+};
+
+const DEFAULT_TEXT_COLOR = '#ffffff';
+const DEFAULT_TEXT_FONT_FAMILY = 'Arial';
+const DEFAULT_TEXT_FONT_SIZE = 12;
+
+/** Parse an `OptionalText`/`SecondOptionalText` JSON blob into a {@link KeyTextStyle}, if it names a title. */
+function parseTextStyle(optionalText: string | undefined): KeyTextStyle | undefined {
+	if (!optionalText) return undefined;
+	let raw: RawTextStyle;
+	try {
+		raw = JSON.parse(optionalText) as RawTextStyle;
+	} catch {
+		return undefined;
+	}
+	const text = raw.TextTitle?.trim();
+	if (!text) return undefined;
+
+	const fontSize = raw.TextFontSize !== undefined ? Number(raw.TextFontSize) : undefined;
+	return {
+		text,
+		color: raw.TextColor || DEFAULT_TEXT_COLOR,
+		align: TEXT_ALIGN_FROM_BASECAMP[raw.TextAlign ?? ''] ?? 'center',
+		fontFamily: raw.TextFontFamily || undefined,
+		fontSize: fontSize !== undefined && Number.isFinite(fontSize) ? fontSize : undefined,
+		bold: raw.TextBold || undefined,
+		italic: raw.TextItalic || undefined,
+		underline: raw.TextUnderline || undefined
+	};
+}
+
+/** Serialize a {@link KeyTextStyle} back into a Base Camp `OptionalText`-shaped JSON blob. */
+function serializeTextStyle(style: KeyTextStyle | undefined): string {
+	if (!style || !style.text.trim()) return '';
+	return JSON.stringify({
+		TextAlign: TEXT_ALIGN_TO_BASECAMP[style.align],
+		TextTitle: style.text,
+		TextFontFamily: style.fontFamily || DEFAULT_TEXT_FONT_FAMILY,
+		TextFontSize: String(style.fontSize ?? DEFAULT_TEXT_FONT_SIZE),
+		TextBold: !!style.bold,
+		TextItalic: !!style.italic,
+		TextUnderline: !!style.underline,
+		TextColor: style.color
+	});
 }
 
 interface RawProfile {
@@ -220,9 +289,14 @@ function keyConfigFromBinding(
 	const label = title?.trim() || keyLabel;
 
 	let face = resolveFace(binding.base64Image, keyLabel, 'image', warnings);
+	const faceText = parseTextStyle(binding.OptionalText);
+	if (faceText) face = { ...face, text: faceText };
+
 	let secondFace: KeyFace | undefined;
 	if (binding.SecondBase64Image) {
 		secondFace = resolveFace(binding.SecondBase64Image, keyLabel, 'second image', warnings);
+		const secondText = parseTextStyle(binding.SecondOptionalText);
+		if (secondText) secondFace = { ...secondFace, text: secondText };
 	}
 	// Normalize so `face` is always the currently-selected state: our runtime toggle
 	// starts at state 0 (`face`) and flips to state 1 (`secondFace`) on each press.
@@ -425,10 +499,10 @@ function bindingFromKeyConfig(
 			DLLMatrixIndex: DLL_MATRIX_INDICES[index],
 			CustomURL: action.type === 'open-url' ? action.url : undefined,
 			IsActive: parentId === 0,
-			OptionalText: optionalText,
+			OptionalText: optionalText || serializeTextStyle(key.face.text),
 			SecondBase64Image: key.secondFace?.type === 'image' ? key.secondFace.dataUrl : '',
 			SecondImageFilePath: '',
-			SecondOptionalText: '',
+			SecondOptionalText: serializeTextStyle(key.secondFace?.text),
 			IsSecondDefaultTouchKeyImage: key.secondFace?.type !== 'image',
 			IsHardWarePress: false,
 			// `face` always round-trips as the first/selected state; `secondFace` (if any) as the second.
