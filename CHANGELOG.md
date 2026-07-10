@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.3.0...mountain-displaypad-v0.4.0) (2026-07-10)
+
+
+### Features
+
+* Render template key faces live in the virtual keypad ([#43](https://github.com/justb81/mountain-displaypad-pwa/issues/43)) ([0fbd6b3](https://github.com/justb81/mountain-displaypad-pwa/commit/0fbd6b39a0d2a18d718e945c7c4e7248ba147b83))
+* reset a key to its defaults via Delete key or Reset button ([#40](https://github.com/justb81/mountain-displaypad-pwa/issues/40)) ([a8bb55d](https://github.com/justb81/mountain-displaypad-pwa/commit/a8bb55dd020464db4f42fd00fabfee3cc8804486))
+
 ## [0.3.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.2.0...mountain-displaypad-v0.3.0) (2026-07-10)
 
 
