@@ -97,6 +97,9 @@
 	function resetKey() {
 		keymap.resetKey(index);
 		connection.syncLiveTimer(index);
+		faceKindOverride = null;
+		secondFaceKindOverride = null;
+		toast.info(`Key ${index + 1} reset.`);
 	}
 
 	function setColor(color: string) {

@@ -59,7 +59,11 @@
 			</button>
 		{/if}
 
-		<div class="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Pages">
+		<div
+			class="flex flex-wrap items-center gap-1.5"
+			role={renamingPage === null ? 'tablist' : undefined}
+			aria-label="Pages"
+		>
 			{#each Array.from({ length: keymap.pageCount }, (_, i) => i) as pageIndex (pageIndex)}
 				{@const active = pageIndex === keymap.activePage}
 				<div class="flex items-center gap-0.5">
@@ -107,23 +111,23 @@
 					{/if}
 				</div>
 			{/each}
-
-			<button
-				type="button"
-				onclick={() => void connection.jumpToPage(keymap.addPage())}
-				class="rounded-control border border-dashed border-line px-2.5 py-1.5 text-label text-slate-400 transition hover:border-line-strong hover:text-slate-200"
-			>
-				+ Page
-			</button>
 		</div>
+
+		<button
+			type="button"
+			onclick={() => void connection.jumpToPage(keymap.addPage())}
+			class="rounded-control border border-dashed border-line px-2.5 py-1.5 text-label text-slate-400 transition hover:border-line-strong hover:text-slate-200"
+		>
+			+ Page
+		</button>
 	</div>
 
 	<div
 		class="rounded-panel border border-slate-700/60 bg-gradient-to-b from-slate-800 to-slate-900 p-3 shadow-lg sm:p-4"
 	>
 		<div
-			class="grid gap-2 rounded-tile bg-slate-950/60 p-3 shadow-inner sm:gap-3"
-			style:grid-template-columns={`repeat(${NUM_KEYS_PER_ROW}, minmax(0, 1fr))`}
+			class="grid gap-2 overflow-x-auto rounded-tile bg-slate-950/60 p-3 shadow-inner sm:gap-3"
+			style:grid-template-columns={`repeat(${NUM_KEYS_PER_ROW}, minmax(3rem, 1fr))`}
 		>
 			{#each keymap.keys as config, index (index)}
 				<PadKey

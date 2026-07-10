@@ -93,12 +93,7 @@
 			<span>
 				This profile contains a script (a template face's transform). Approve it before it can run.
 			</span>
-			<Button
-				variant="secondary"
-				size="sm"
-				class="border-warning-strong bg-warning-strong text-white hover:bg-warning"
-				onclick={() => keymap.approveScripts()}
-			>
+			<Button variant="warning" size="sm" onclick={() => keymap.approveScripts()}>
 				Run scripts
 			</Button>
 		</div>

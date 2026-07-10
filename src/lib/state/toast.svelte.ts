@@ -30,6 +30,10 @@ class ToastStore {
 		this.push(text, 'error');
 	}
 
+	info(text: string): void {
+		this.push(text, 'info');
+	}
+
 	dismiss(id: number): void {
 		this.items = this.items.filter((item) => item.id !== id);
 	}

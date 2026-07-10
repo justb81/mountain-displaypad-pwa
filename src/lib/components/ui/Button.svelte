@@ -3,7 +3,7 @@
 	import type { HTMLButtonAttributes } from 'svelte/elements';
 
 	interface Props extends HTMLButtonAttributes {
-		variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
+		variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'ghost';
 		size?: 'sm' | 'md';
 		children?: Snippet;
 	}
@@ -25,6 +25,7 @@
 			secondary: 'border border-line text-slate-200 hover:bg-slate-700/60',
 			success: 'bg-success-strong text-white hover:bg-success',
 			danger: 'bg-danger-strong text-white hover:bg-danger',
+			warning: 'bg-warning-strong text-white hover:bg-warning',
 			ghost: 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
 		}[variant]
 	);

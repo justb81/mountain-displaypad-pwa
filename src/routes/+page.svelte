@@ -24,6 +24,7 @@
 		if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 		keymap.resetKey(selected);
 		connection.syncLiveTimer(selected);
+		toast.info(`Key ${selected + 1} reset.`);
 	}
 
 	async function applyAll() {
@@ -104,7 +105,7 @@
 
 	<ProfileTools />
 
-	<main class="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+	<main class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
 		<div class="flex flex-col gap-4">
 			<PadGrid {selected} onselect={(i) => (selected = i)} />
 
