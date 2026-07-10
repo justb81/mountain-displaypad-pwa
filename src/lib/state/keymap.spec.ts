@@ -59,6 +59,29 @@ describe('keymap.copy', () => {
 	});
 });
 
+describe('keymap.resetKey', () => {
+	it('restores the key to its default label/face/action, leaving other keys untouched', () => {
+		keymap.importAll(keymap.keys.map((_, i) => config(`k${i}`)));
+		keymap.update(4, {
+			label: 'Custom',
+			face: { type: 'color', color: '#ff0000' },
+			action: { type: 'open-url', url: 'https://example.com' }
+		});
+		const before = keymap.keys.map((k) => k.label);
+
+		keymap.resetKey(4);
+
+		expect(keymap.keys[4]).toEqual({
+			label: 'Key 5',
+			face: { type: 'color', color: '#000000' },
+			action: { type: 'none' }
+		});
+		keymap.keys.forEach((k, i) => {
+			if (i !== 4) expect(k.label).toBe(before[i]);
+		});
+	});
+});
+
 describe('keymap.scriptsApproved', () => {
 	it('is left approved when an imported profile has no template transforms', () => {
 		keymap.importAll(keymap.keys.map((_, i) => config(`k${i}`)));

@@ -45,6 +45,11 @@
 		onmove(target);
 	}
 
+	function resetKey() {
+		keymap.resetKey(index);
+		connection.syncLiveTimer(index);
+	}
+
 	function setColor(color: string) {
 		keymap.update(index, { face: { type: 'color', color, text: faceText(config.face) } });
 	}
@@ -326,6 +331,15 @@
 				class="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
 			>
 				Apply to pad
+			</button>
+			<button
+				type="button"
+				onclick={resetKey}
+				aria-label="Reset key"
+				title="Reset key to default"
+				class="rounded border border-slate-600 px-2 py-1.5 text-sm text-slate-200 hover:bg-slate-700"
+			>
+				Reset
 			</button>
 		</div>
 	</header>
