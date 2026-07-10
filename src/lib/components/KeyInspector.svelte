@@ -506,8 +506,8 @@
 				</p>
 				<p class="text-xs text-slate-500">
 					Size your root element to <code>width:100%;height:100%</code> (with
-					<code>box-sizing:border-box</code>) to cover the whole key — anything it doesn't
-					reach renders black, same as an unset key.
+					<code>box-sizing:border-box</code>) to cover the whole key — anything it doesn't reach
+					renders black, same as an unset key.
 				</p>
 				{#if config.face.transform && !keymap.scriptsApproved}
 					<p class="text-xs text-amber-400">
