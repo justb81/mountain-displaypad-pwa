@@ -16,6 +16,16 @@ export type KeyAction =
 			headers?: Record<string, string>;
 			/** Fire-and-forget with an opaque response: no CORS needed, but status/errors are unreadable. */
 			noCors?: boolean;
+	  }
+	| {
+			/** Jump the whole pad to another page of 12 keys (Base Camp's "Create Folder"). */
+			type: 'open-folder';
+			/** Index into the keymap's page list. */
+			page: number;
+	  }
+	| {
+			/** Pop back to the page this key's folder was entered from (Base Camp's "Back"). */
+			type: 'back';
 	  };
 
 /** How a key renders on the physical pad. */

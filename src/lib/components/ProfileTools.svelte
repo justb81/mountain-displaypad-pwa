@@ -21,10 +21,10 @@
 					size: file.size,
 					sha256: await sha256(text)
 				});
-				console.debug('[basecamp-import] parsed keys', result.keys);
+				console.debug('[basecamp-import] parsed pages', result.pages);
 				console.debug('[basecamp-import] warnings', result.warnings);
 			}
-			keymap.importAll(result.keys, result.profileName, result.profileImage);
+			keymap.importPages(result.pages, result.profileName, result.profileImage);
 			warnings = result.warnings;
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err);
@@ -41,7 +41,7 @@
 
 	function exportProfile(): void {
 		error = null;
-		const result = serializeBasecampProfile(keymap.keys, {
+		const result = serializeBasecampProfile(keymap.pages, {
 			profileName: keymap.profileName,
 			profileImage: keymap.profileImage
 		});

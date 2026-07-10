@@ -189,6 +189,33 @@ class Connection {
 		else if (action.type === 'copy-text' && action.text)
 			void navigator.clipboard?.writeText(action.text);
 		else if (action.type === 'webhook' && action.url) this.fireWebhook(index, action);
+		else if (action.type === 'open-folder') void this.goToPage(action.page);
+		else if (action.type === 'back') void this.goBack();
+	}
+
+	/** Navigate to `page`, remembering history, and repaint the hardware if connected. */
+	async goToPage(page: number): Promise<void> {
+		keymap.openPage(page);
+		await this.afterNavigate();
+	}
+
+	/** Pop one level of page history and repaint the hardware if connected. */
+	async goBack(): Promise<void> {
+		keymap.back();
+		await this.afterNavigate();
+	}
+
+	/** Jump straight to `page` without pushing history (e.g. a breadcrumb click) and repaint if connected. */
+	async jumpToPage(page: number): Promise<void> {
+		keymap.switchPage(page);
+		await this.afterNavigate();
+	}
+
+	/** Re-derive per-key runtime state for the now-active page and push it to the hardware. */
+	private async afterNavigate(): Promise<void> {
+		this.toggled = Array(NUM_KEYS).fill(false);
+		for (let i = 0; i < NUM_KEYS; i++) this.syncLiveTimer(i);
+		if (this.pad) await this.applyAll();
 	}
 
 	/**
