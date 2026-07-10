@@ -22,12 +22,33 @@ type TemplateFace = Extract<KeyFace, { type: 'template' }>;
  * be inline and any external image/font embedded as a `data:` URL: the SVG
  * is loaded as an `<img>`, which runs in secure-static mode (no scripts, no
  * external resource loads).
+ *
+ * The wrapper div is `size`x`size` with `overflow:hidden`, but nothing forces
+ * the caller's `html` itself to fill that box — content that doesn't
+ * explicitly size itself to 100%/100% (see `KeyInspector`'s starter template)
+ * only covers its own natural size, leaving the rest of the box uncovered.
+ * The wrapper's own `background:#000` gives that leftover area the same
+ * black the pad already shows for an unset key (`encodeImage` drops alpha
+ * regardless, so this is a no-op for the pixels actually sent to hardware —
+ * it only matters for matching that on the virtual keypad preview, which
+ * unlike the pad does render transparency).
+ *
+ * This render is a self-contained document (an isolated `data:image/svg+xml`
+ * resource, not sharing style scope with the app or other keys), so it also
+ * resets every element's margin/padding and forces `border-box` sizing:
+ * without it, a heading/paragraph/list's UA-default margin can collapse
+ * through a size:100% wrapper `<div>` with no border/padding of its own and
+ * escape past the top of the box — content still fills its full declared
+ * height, but visually shifted down, leaving a gap only at the top (the
+ * overflow at the bottom is simply clipped) — surprising unless you already
+ * know that collapsing rule.
  */
 export function wrapHtmlInSvg(html: string, size: number): string {
 	return (
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">` +
 		`<foreignObject x="0" y="0" width="${size}" height="${size}">` +
-		`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${size}px;height:${size}px;overflow:hidden;">${html}</div>` +
+		`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${size}px;height:${size}px;overflow:hidden;background:#000;">` +
+		`<style>*{margin:0;padding:0;box-sizing:border-box;}</style>${html}</div>` +
 		`</foreignObject></svg>`
 	);
 }

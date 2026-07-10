@@ -99,6 +99,22 @@ function drawTextOverlay(ctx: CanvasRenderingContext2D, style: KeyTextStyle, siz
 }
 
 /**
+ * Encode an RGBA pixel buffer (as produced by {@link rasterize} or
+ * `fetchTemplateFace`) back into a `data:image/png` URL, so a rendered face
+ * can be shown as a preview image — e.g. the virtual keypad tile — without a
+ * physical pad to paint it onto.
+ */
+export function pixelsToDataUrl(pixels: Uint8ClampedArray, size = ICON_SIZE): string {
+	const canvas = document.createElement('canvas');
+	canvas.width = size;
+	canvas.height = size;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) throw new Error('2D canvas context unavailable.');
+	ctx.putImageData(new ImageData(new Uint8ClampedArray(pixels), size, size), 0, 0);
+	return canvas.toDataURL('image/png');
+}
+
+/**
  * Re-encode `src` as a {@link ICON_SIZE}x{@link ICON_SIZE} PNG data URL. Used to
  * shrink an image face before it's stashed as a template, since a template stash
  * of full-resolution images can bump into the localStorage quota.
