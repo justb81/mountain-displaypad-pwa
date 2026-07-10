@@ -58,7 +58,9 @@
 							: undefined}
 						style:background-image={template.config.face.type === 'image'
 							? `url(${template.config.face.dataUrl})`
-							: undefined}
+							: template.config.face.type === 'template' && template.previewDataUrl
+								? `url(${template.previewDataUrl})`
+								: undefined}
 					></span>
 					{#if renamingId === template.id}
 						<input
