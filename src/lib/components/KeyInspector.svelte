@@ -1,10 +1,11 @@
 <script lang="ts">
+	import CodeEditor from './CodeEditor.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { NUM_KEYS } from '$lib/displaypad/protocol.js';
 	import { removeImageBackground } from '$lib/displaypad/raster.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { templates } from '$lib/state/templates.svelte.js';
-	import type { KeyAction, KeyTextStyle } from '$lib/types.js';
+	import { faceText, withFaceText, type KeyAction, type KeyTextStyle } from '$lib/types.js';
 
 	interface Props {
 		index: number;
@@ -45,7 +46,7 @@
 	}
 
 	function setColor(color: string) {
-		keymap.update(index, { face: { type: 'color', color, text: config.face.text } });
+		keymap.update(index, { face: { type: 'color', color, text: faceText(config.face) } });
 	}
 
 	function onFile(event: Event) {
@@ -54,7 +55,7 @@
 		const reader = new FileReader();
 		reader.onload = () =>
 			keymap.update(index, {
-				face: { type: 'image', dataUrl: String(reader.result), text: config.face.text }
+				face: { type: 'image', dataUrl: String(reader.result), text: faceText(config.face) }
 			});
 		reader.readAsDataURL(file);
 	}
@@ -67,23 +68,63 @@
 				url,
 				refreshMinutes: current?.refreshMinutes,
 				refreshOnPress: current?.refreshOnPress,
-				text: config.face.text
+				text: faceText(config.face)
 			}
 		});
 		connection.syncLiveTimer(index);
 	}
 
-	/** Toggle whether the key's face carries a burned-on text label. */
+	function setTemplateFace() {
+		const current = config.face.type === 'template' ? config.face : undefined;
+		keymap.update(index, {
+			face: {
+				type: 'template',
+				template: current?.template ?? '',
+				transform: current?.transform,
+				refreshMinutes: current?.refreshMinutes,
+				refreshOnPress: current?.refreshOnPress
+			}
+		});
+		connection.syncLiveTimer(index);
+	}
+
+	function setTemplate(template: string) {
+		if (config.face.type !== 'template') return;
+		keymap.update(index, { face: { ...config.face, template } });
+	}
+
+	function setTransform(transform: string) {
+		if (config.face.type !== 'template') return;
+		keymap.update(index, { face: { ...config.face, transform: transform || undefined } });
+	}
+
+	function setTemplateRefreshMinutes(minutes: number) {
+		if (config.face.type !== 'template') return;
+		keymap.update(index, {
+			face: { ...config.face, refreshMinutes: minutes > 0 ? minutes : undefined }
+		});
+		connection.syncLiveTimer(index);
+	}
+
+	function setTemplateRefreshOnPress(refreshOnPress: boolean) {
+		if (config.face.type !== 'template') return;
+		keymap.update(index, { face: { ...config.face, refreshOnPress } });
+		connection.syncLiveTimer(index);
+	}
+
+	/** Toggle whether the key's face carries a burned-on text label (unavailable for a `template` face). */
 	function toggleFaceText(enabled: boolean) {
+		if (config.face.type === 'template') return;
 		if (enabled) {
 			updateFaceText({ text: config.face.text?.text || config.label });
 		} else {
-			keymap.update(index, { face: { ...config.face, text: undefined } });
+			keymap.update(index, { face: withFaceText(config.face, undefined) });
 		}
 	}
 
 	/** Merge a patch into the face's text label, filling in defaults for a freshly-enabled label. */
 	function updateFaceText(patch: Partial<KeyTextStyle>) {
+		if (config.face.type === 'template') return;
 		const text: KeyTextStyle = {
 			text: '',
 			color: '#ffffff',
@@ -91,7 +132,7 @@
 			...config.face.text,
 			...patch
 		};
-		keymap.update(index, { face: { ...config.face, text } });
+		keymap.update(index, { face: withFaceText(config.face, text) });
 	}
 
 	function setRemoteRefreshMinutes(minutes: number) {
@@ -116,7 +157,7 @@
 
 	function setSecondColor(color: string) {
 		keymap.update(index, {
-			secondFace: { type: 'color', color, text: config.secondFace?.text }
+			secondFace: { type: 'color', color, text: faceText(config.secondFace) }
 		});
 	}
 
@@ -126,24 +167,28 @@
 		const reader = new FileReader();
 		reader.onload = () =>
 			keymap.update(index, {
-				secondFace: { type: 'image', dataUrl: String(reader.result), text: config.secondFace?.text }
+				secondFace: {
+					type: 'image',
+					dataUrl: String(reader.result),
+					text: faceText(config.secondFace)
+				}
 			});
 		reader.readAsDataURL(file);
 	}
 
-	/** Toggle whether the toggle key's second face carries a burned-on text label. */
+	/** Toggle whether the toggle key's second face carries a burned-on text label (unavailable for a `template` face). */
 	function toggleSecondFaceText(enabled: boolean) {
-		if (!config.secondFace) return;
+		if (!config.secondFace || config.secondFace.type === 'template') return;
 		if (enabled) {
 			updateSecondFaceText({ text: config.secondFace.text?.text || config.label });
 		} else {
-			keymap.update(index, { secondFace: { ...config.secondFace, text: undefined } });
+			keymap.update(index, { secondFace: withFaceText(config.secondFace, undefined) });
 		}
 	}
 
 	/** Merge a patch into the second face's text label, filling in defaults for a freshly-enabled label. */
 	function updateSecondFaceText(patch: Partial<KeyTextStyle>) {
-		if (!config.secondFace) return;
+		if (!config.secondFace || config.secondFace.type === 'template') return;
 		const text: KeyTextStyle = {
 			text: '',
 			color: '#ffffff',
@@ -151,7 +196,7 @@
 			...config.secondFace.text,
 			...patch
 		};
-		keymap.update(index, { secondFace: { ...config.secondFace, text } });
+		keymap.update(index, { secondFace: withFaceText(config.secondFace, text) });
 	}
 
 	async function removeBackground() {
@@ -160,7 +205,7 @@
 		backgroundError = undefined;
 		try {
 			const dataUrl = await removeImageBackground(config.face.dataUrl);
-			keymap.update(index, { face: { type: 'image', dataUrl, text: config.face.text } });
+			keymap.update(index, { face: { type: 'image', dataUrl, text: faceText(config.face) } });
 		} catch {
 			backgroundError = 'Could not remove the background from this image.';
 		} finally {
@@ -398,88 +443,152 @@
 				<p class="pl-1 text-xs text-rose-400">{connection.liveFaceErrors[index]}</p>
 			{/if}
 		{/if}
-	</fieldset>
 
-	<fieldset class="flex flex-col gap-2 text-sm text-slate-300">
-		<legend class="mb-1">Text label (burned onto the key)</legend>
 		<label class="flex items-center gap-2">
 			<input
 				type="checkbox"
-				checked={!!config.face.text}
-				onchange={(e) => toggleFaceText(e.currentTarget.checked)}
+				checked={config.face.type === 'template'}
+				onchange={(e) => (e.currentTarget.checked ? setTemplateFace() : setColor('#000000'))}
 			/>
-			Render a text label onto this face
+			Template (transform + Mustache HTML, rendered to the key)
 		</label>
-		{#if config.face.text}
-			<label class="flex items-center gap-2">
-				<input
-					class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
-					value={config.face.text.text}
-					oninput={(e) => updateFaceText({ text: e.currentTarget.value })}
-				/>
-			</label>
-			<div class="flex flex-wrap items-center gap-3 pl-1 text-xs text-slate-400">
-				<label class="flex items-center gap-1">
-					<input
-						type="color"
-						value={config.face.text.color}
-						oninput={(e) => updateFaceText({ color: e.currentTarget.value })}
+		{#if config.face.type === 'template'}
+			<div class="flex flex-col gap-2 pl-1">
+				<label class="flex flex-col gap-1 text-xs text-slate-400">
+					Template (HTML + Mustache)
+					<CodeEditor value={config.face.template} language="handlebars" onChange={setTemplate} />
+				</label>
+				<label class="flex flex-col gap-1 text-xs text-slate-400">
+					Transform (optional sandboxed JS — has <code>fetch</code>, <code>Date</code>, and a
+					<code>ctx</code> argument; must return a plain object)
+					<CodeEditor
+						value={config.face.transform ?? ''}
+						language="javascript"
+						onChange={setTransform}
 					/>
-					Colour
 				</label>
-				<label class="flex items-center gap-1">
-					Align
-					<select
-						class="rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
-						value={config.face.text.align}
-						onchange={(e) =>
-							updateFaceText({ align: e.currentTarget.value as KeyTextStyle['align'] })}
-					>
-						<option value="top">Top</option>
-						<option value="center">Center</option>
-						<option value="bottom">Bottom</option>
-					</select>
-				</label>
-				<label class="flex items-center gap-1">
-					Size
-					<input
-						type="number"
-						min="1"
-						value={config.face.text.fontSize ?? ''}
-						placeholder="14"
-						oninput={(e) =>
-							updateFaceText({ fontSize: Number(e.currentTarget.value) || undefined })}
-						class="w-14 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
-					/>
-					px
-				</label>
-				<label class="flex items-center gap-1">
-					<input
-						type="checkbox"
-						checked={config.face.text.bold ?? false}
-						onchange={(e) => updateFaceText({ bold: e.currentTarget.checked || undefined })}
-					/>
-					Bold
-				</label>
-				<label class="flex items-center gap-1">
-					<input
-						type="checkbox"
-						checked={config.face.text.italic ?? false}
-						onchange={(e) => updateFaceText({ italic: e.currentTarget.checked || undefined })}
-					/>
-					Italic
-				</label>
-				<label class="flex items-center gap-1">
-					<input
-						type="checkbox"
-						checked={config.face.text.underline ?? false}
-						onchange={(e) => updateFaceText({ underline: e.currentTarget.checked || undefined })}
-					/>
-					Underline
-				</label>
+				<div class="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+					<label class="flex items-center gap-1">
+						Refresh every
+						<input
+							type="number"
+							min="1"
+							placeholder="off"
+							value={config.face.refreshMinutes ?? ''}
+							oninput={(e) => setTemplateRefreshMinutes(Number(e.currentTarget.value))}
+							class="w-16 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+						/>
+						min
+					</label>
+					<label class="flex items-center gap-1">
+						<input
+							type="checkbox"
+							checked={config.face.refreshOnPress ?? false}
+							onchange={(e) => setTemplateRefreshOnPress(e.currentTarget.checked)}
+						/>
+						Refresh on press
+					</label>
+				</div>
+				<p class="text-xs text-slate-500">
+					The transform runs in a sandboxed, opaque-origin iframe with no access to this app — only
+					<code>fetch</code> and <code>Date</code>. Its result is rendered through the template with
+					Mustache (<code>{'{{var}}'}</code> escapes HTML, <code>{'{{{var}}}'}</code> doesn't).
+				</p>
+				{#if config.face.transform && !keymap.scriptsApproved}
+					<p class="text-xs text-amber-400">
+						This script came from an imported profile and won't run until you approve it in Profile
+						tools.
+					</p>
+				{/if}
+				{#if connection.liveFaceErrors[index]}
+					<p class="text-xs text-rose-400">{connection.liveFaceErrors[index]}</p>
+				{/if}
 			</div>
 		{/if}
 	</fieldset>
+
+	{#if config.face.type !== 'template'}
+		<fieldset class="flex flex-col gap-2 text-sm text-slate-300">
+			<legend class="mb-1">Text label (burned onto the key)</legend>
+			<label class="flex items-center gap-2">
+				<input
+					type="checkbox"
+					checked={!!config.face.text}
+					onchange={(e) => toggleFaceText(e.currentTarget.checked)}
+				/>
+				Render a text label onto this face
+			</label>
+			{#if config.face.text}
+				<label class="flex items-center gap-2">
+					<input
+						class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"
+						value={config.face.text.text}
+						oninput={(e) => updateFaceText({ text: e.currentTarget.value })}
+					/>
+				</label>
+				<div class="flex flex-wrap items-center gap-3 pl-1 text-xs text-slate-400">
+					<label class="flex items-center gap-1">
+						<input
+							type="color"
+							value={config.face.text.color}
+							oninput={(e) => updateFaceText({ color: e.currentTarget.value })}
+						/>
+						Colour
+					</label>
+					<label class="flex items-center gap-1">
+						Align
+						<select
+							class="rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+							value={config.face.text.align}
+							onchange={(e) =>
+								updateFaceText({ align: e.currentTarget.value as KeyTextStyle['align'] })}
+						>
+							<option value="top">Top</option>
+							<option value="center">Center</option>
+							<option value="bottom">Bottom</option>
+						</select>
+					</label>
+					<label class="flex items-center gap-1">
+						Size
+						<input
+							type="number"
+							min="1"
+							value={config.face.text.fontSize ?? ''}
+							placeholder="14"
+							oninput={(e) =>
+								updateFaceText({ fontSize: Number(e.currentTarget.value) || undefined })}
+							class="w-14 rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-white"
+						/>
+						px
+					</label>
+					<label class="flex items-center gap-1">
+						<input
+							type="checkbox"
+							checked={config.face.text.bold ?? false}
+							onchange={(e) => updateFaceText({ bold: e.currentTarget.checked || undefined })}
+						/>
+						Bold
+					</label>
+					<label class="flex items-center gap-1">
+						<input
+							type="checkbox"
+							checked={config.face.text.italic ?? false}
+							onchange={(e) => updateFaceText({ italic: e.currentTarget.checked || undefined })}
+						/>
+						Italic
+					</label>
+					<label class="flex items-center gap-1">
+						<input
+							type="checkbox"
+							checked={config.face.text.underline ?? false}
+							onchange={(e) => updateFaceText({ underline: e.currentTarget.checked || undefined })}
+						/>
+						Underline
+					</label>
+				</div>
+			{/if}
+		</fieldset>
+	{/if}
 
 	<fieldset class="flex flex-col gap-2 text-sm text-slate-300">
 		<legend class="mb-1">Toggle key (second face)</legend>
@@ -524,12 +633,12 @@
 			<label class="flex items-center gap-2">
 				<input
 					type="checkbox"
-					checked={!!config.secondFace.text}
+					checked={!!faceText(config.secondFace)}
 					onchange={(e) => toggleSecondFaceText(e.currentTarget.checked)}
 				/>
 				Render a text label onto this face
 			</label>
-			{#if config.secondFace.text}
+			{#if config.secondFace.type !== 'template' && config.secondFace.text}
 				<label class="flex items-center gap-2">
 					<input
 						class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-900 px-2 py-1 text-white"

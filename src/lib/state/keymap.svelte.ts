@@ -16,6 +16,17 @@ import { browser } from '$app/environment';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
 import type { KeyConfig } from '$lib/types.js';
 
+/** Whether any key on any page carries a `template` face with a (potentially untrusted) transform. */
+function pagesContainTransform(pages: KeyConfig[][]): boolean {
+	return pages.some((page) =>
+		page.some(
+			(key) =>
+				(key.face.type === 'template' && !!key.face.transform) ||
+				(key.secondFace?.type === 'template' && !!key.secondFace.transform)
+		)
+	);
+}
+
 const STORAGE_KEY = 'displaypad.keymap.v2';
 /** Pre-multi-page save shape, migrated on load and never written again. */
 const LEGACY_STORAGE_KEY_V1 = 'displaypad.keymap.v1';
@@ -42,6 +53,14 @@ class Keymap {
 	profileName = $state<string | undefined>(undefined);
 	/** The imported/exported profile's own thumbnail, as a data URL — carried through Base Camp round-trips. */
 	profileImage = $state<string | undefined>(undefined);
+	/**
+	 * False right after importing a profile whose pages contain a `template` face
+	 * with a transform — a `template` face's `transform` is executable JS, so an
+	 * imported one must not run silently. `connection.applyKey` refuses to run
+	 * those transforms until {@link approveScripts} flips this back to true.
+	 * Keys authored locally via {@link update}/KeyInspector never touch this flag.
+	 */
+	scriptsApproved = $state(true);
 
 	constructor() {
 		if (browser) this.load();
@@ -85,6 +104,7 @@ class Keymap {
 		this.pages = [defaultPage()];
 		this.activePage = 0;
 		this.pageHistory = [];
+		this.scriptsApproved = true;
 		this.persist();
 	}
 
@@ -103,6 +123,13 @@ class Keymap {
 		this.pageHistory = [];
 		this.profileName = profileName;
 		this.profileImage = profileImage;
+		this.scriptsApproved = !pagesContainTransform(pages);
+		this.persist();
+	}
+
+	/** Explicitly allow running the `transform`s an imported profile brought in. */
+	approveScripts(): void {
+		this.scriptsApproved = true;
 		this.persist();
 	}
 
@@ -167,11 +194,13 @@ class Keymap {
 					pages?: KeyConfig[][];
 					profileName?: string;
 					profileImage?: string;
+					scriptsApproved?: boolean;
 				};
 				if (Array.isArray(parsed.pages) && parsed.pages.every((page) => page.length === NUM_KEYS)) {
 					this.pages = parsed.pages;
 					this.profileName = parsed.profileName;
 					this.profileImage = parsed.profileImage;
+					this.scriptsApproved = parsed.scriptsApproved ?? true;
 				}
 				return;
 			}
@@ -199,7 +228,8 @@ class Keymap {
 				JSON.stringify({
 					pages: this.pages,
 					profileName: this.profileName,
-					profileImage: this.profileImage
+					profileImage: this.profileImage,
+					scriptsApproved: this.scriptsApproved
 				})
 			);
 		}

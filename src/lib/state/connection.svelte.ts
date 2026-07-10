@@ -11,8 +11,9 @@ import { DisplayPad, type KeyEventDetail } from '$lib/displaypad/device.js';
 import { hexToRgb } from '$lib/displaypad/image.js';
 import { fetchRemoteFace } from '$lib/displaypad/liveface.js';
 import { rasterize, rasterizeColor } from '$lib/displaypad/raster.js';
+import { fetchTemplateFace } from '$lib/displaypad/template.js';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-import type { ConnectionStatus, KeyAction } from '$lib/types.js';
+import { isLiveFace, type ConnectionStatus, type KeyAction } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
 
 const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
@@ -124,8 +125,17 @@ class Connection {
 			this.pad.setKeyImage(index, await rasterize(face.dataUrl, undefined, face.text));
 			return;
 		}
+		if (face.type === 'template' && face.transform && !keymap.scriptsApproved) {
+			this.liveFaceErrors[index] =
+				'This key runs a script from an imported profile — approve scripts in Profile tools before it can render.';
+			return;
+		}
 		try {
-			this.pad.setKeyImage(index, await fetchRemoteFace(face.url, undefined, face.text));
+			const pixels =
+				face.type === 'remote'
+					? await fetchRemoteFace(face.url, undefined, face.text)
+					: await fetchTemplateFace(face);
+			this.pad.setKeyImage(index, pixels);
 			this.liveFaceErrors[index] = null;
 		} catch (err) {
 			this.liveFaceErrors[index] = err instanceof Error ? err.message : String(err);
@@ -148,7 +158,7 @@ class Connection {
 		if (this.status !== 'connected') return;
 
 		const { face } = keymap.keys[index];
-		if (face.type !== 'remote' || !face.refreshMinutes) return;
+		if (!isLiveFace(face) || !face.refreshMinutes) return;
 
 		const minutes = Math.max(MIN_REFRESH_MINUTES, face.refreshMinutes);
 		const delay = minutes * 60_000 + Math.random() * REFRESH_JITTER_MS;
@@ -180,7 +190,7 @@ class Connection {
 			if (config.secondFace) {
 				this.toggled[key] = !this.toggled[key];
 				void this.applyKey(key);
-			} else if (config.face.type === 'remote' && config.face.refreshOnPress) {
+			} else if (isLiveFace(config.face) && config.face.refreshOnPress) {
 				void this.applyKey(key);
 			}
 			this.runAction(key);

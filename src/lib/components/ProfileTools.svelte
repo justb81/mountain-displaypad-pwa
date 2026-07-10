@@ -86,6 +86,21 @@
 	</button>
 </div>
 
+{#if !keymap.scriptsApproved}
+	<div class="mt-2 flex flex-wrap items-center gap-3 rounded-md bg-amber-950 px-3 py-2 text-sm">
+		<span class="text-amber-300">
+			This profile contains a script (a template face's transform). Approve it before it can run.
+		</span>
+		<button
+			type="button"
+			onclick={() => keymap.approveScripts()}
+			class="rounded-md bg-amber-600 px-3 py-1 font-medium text-white transition hover:bg-amber-500"
+		>
+			Run scripts
+		</button>
+	</div>
+{/if}
+
 {#if error}
 	<p class="mt-2 text-sm text-red-400">{error}</p>
 {/if}

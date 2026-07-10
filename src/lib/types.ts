@@ -64,7 +64,38 @@ export type KeyFace =
 			/** Refetch (and re-apply) whenever this key is pressed. */
 			refreshOnPress?: boolean;
 			text?: KeyTextStyle;
+	  }
+	| {
+			/** Data-driven face: an optional sandboxed transform feeds a Mustache template, rasterised to the key. */
+			type: 'template';
+			/** HTML + Mustache; rendered with whatever `transform` returns (or {} if none). */
+			template: string;
+			/** Optional sandboxed async JS body: has `fetch` + `Date` + a `ctx` arg, must
+			 *  return a structured-cloneable object. Runs in an opaque-origin iframe. */
+			transform?: string;
+			/** Refetch + re-render this often while connected. Omitted/0 disables the timer. */
+			refreshMinutes?: number;
+			/** Refetch + re-render whenever this key is pressed. */
+			refreshOnPress?: boolean;
 	  };
+
+/** Faces with a `refreshMinutes`/`refreshOnPress` polling policy — `remote` and `template`. */
+export type LiveKeyFace = Extract<KeyFace, { refreshMinutes?: number; refreshOnPress?: boolean }>;
+
+/** Whether `face` is polled/refetched on a timer or key press, rather than static. */
+export function isLiveFace(face: KeyFace): face is LiveKeyFace {
+	return face.type === 'remote' || face.type === 'template';
+}
+
+/** A face's burned-on text label, if its variant carries one (a `template` face doesn't — it renders its own HTML). */
+export function faceText(face: KeyFace | undefined): KeyTextStyle | undefined {
+	return face && face.type !== 'template' ? face.text : undefined;
+}
+
+/** `face` with its text label replaced, if its variant carries one — a no-op for a `template` face. */
+export function withFaceText(face: KeyFace, text: KeyTextStyle | undefined): KeyFace {
+	return face.type === 'template' ? face : { ...face, text };
+}
 
 /** Full user-facing configuration for one of the 12 keys. */
 export interface KeyConfig {
