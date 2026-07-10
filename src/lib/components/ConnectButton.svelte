@@ -1,9 +1,12 @@
 <script lang="ts">
+	import Button from './ui/Button.svelte';
+	import Hint from './ui/Hint.svelte';
+	import StatusPill from './ui/StatusPill.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 
 	const label = $derived(
 		{
-			unsupported: 'WebHID unsupported',
+			unsupported: 'Unsupported',
 			disconnected: 'Connect DisplayPad',
 			connecting: 'Connecting…',
 			connected: 'Disconnect',
@@ -17,15 +20,27 @@
 	}
 </script>
 
-<button
-	type="button"
-	onclick={toggle}
-	disabled={connection.status === 'unsupported' || connection.status === 'connecting'}
-	class="rounded-md bg-sky-600 px-4 py-2 font-medium text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
->
-	{label}
-</button>
+<div class="flex flex-col items-end gap-1.5">
+	<div class="flex items-center gap-3">
+		<StatusPill status={connection.status} />
+		<Button
+			variant={connection.status === 'connected' ? 'secondary' : 'primary'}
+			onclick={toggle}
+			disabled={connection.status === 'unsupported' || connection.status === 'connecting'}
+		>
+			{label}
+		</Button>
+	</div>
 
-{#if connection.status === 'error' && connection.error}
-	<p class="mt-1 text-sm text-red-400">{connection.error}</p>
-{/if}
+	{#if connection.status === 'unsupported'}
+		<div class="max-w-xs text-right">
+			<Hint>
+				WebHID needs a Chromium browser (Chrome or Edge) served over <code>localhost</code> or HTTPS.
+			</Hint>
+		</div>
+	{:else if connection.status === 'error' && connection.error}
+		<div class="max-w-xs text-right">
+			<Hint tone="danger">{connection.error}</Hint>
+		</div>
+	{/if}
+</div>

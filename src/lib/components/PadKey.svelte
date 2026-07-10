@@ -33,6 +33,24 @@
 	const templateError = $derived(isTemplate ? templatePreview.errors[index] : undefined);
 	const previewImage = $derived(image ?? templateImage ?? undefined);
 
+	/** What happens on press, as a small badge glyph + accessible label — `undefined` for 'none'. */
+	const actionBadge = $derived.by((): { glyph: string; label: string } | undefined => {
+		switch (config.action.type) {
+			case 'open-url':
+				return { glyph: '↗', label: 'Opens a URL when pressed' };
+			case 'copy-text':
+				return { glyph: '⧉', label: 'Copies text when pressed' };
+			case 'webhook':
+				return { glyph: '⚡', label: 'Fires a webhook when pressed' };
+			case 'open-folder':
+				return { glyph: '⊞', label: 'Opens another page when pressed' };
+			case 'back':
+				return { glyph: '↩', label: 'Returns to the previous page when pressed' };
+			default:
+				return undefined;
+		}
+	});
+
 	/** Keep this tile's template render current: re-render whenever its face (or script approval) changes. */
 	$effect(() => {
 		templatePreview.scheduleRender(index, config.face, keymap.scriptsApproved);
@@ -97,33 +115,66 @@
 	{ondragleave}
 	{ondrop}
 	aria-pressed={selected}
-	class="relative flex aspect-square items-end justify-center overflow-hidden rounded-lg border-2 bg-cover bg-center p-1 text-xs font-medium text-white shadow-inner transition
+	title={`Key ${index + 1}: ${config.label}`}
+	class="group relative flex aspect-square cursor-grab items-end justify-center overflow-hidden rounded-tile bg-cover bg-center p-1 text-white shadow-inner transition active:cursor-grabbing
 		{selected
-		? 'border-sky-400 ring-2 ring-sky-400/50'
+		? 'border-[3px] border-accent ring-2 ring-accent/40'
 		: dragOver
-			? 'border-emerald-400 ring-2 ring-emerald-400/50'
-			: 'border-slate-700 hover:border-slate-500'}
+			? 'border-[3px] border-success ring-2 ring-success/40'
+			: 'border-2 border-slate-700 hover:border-slate-500'}
 		{pressed ? 'scale-95 brightness-125' : ''}"
 	style:background-color={background}
 	style:background-image={previewImage ? `url(${previewImage})` : undefined}
 >
+	<span
+		class="pointer-events-none absolute top-1 left-1 flex items-center gap-0.5 opacity-90"
+		aria-hidden="true"
+	>
+		{#if actionBadge}
+			<span
+				class="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none"
+				title={actionBadge.label}
+			>
+				{actionBadge.glyph}
+			</span>
+		{/if}
+		{#if config.secondFace}
+			<span
+				class="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none"
+				title="Flips to a second face when pressed"
+			>
+				⇄
+			</span>
+		{/if}
+	</span>
+
 	{#if isRemote}
 		<span
-			class="absolute top-1 right-1 rounded bg-black/50 px-1 py-0.5 text-[10px]"
-			title="Remote face"
+			class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none"
+			title="Live: refreshes from a URL"
 		>
-			&#8635;
+			⟳
 		</span>
 	{/if}
 	{#if isTemplate}
 		<span
-			class="absolute top-1 right-1 rounded bg-black/50 px-1 py-0.5 text-[10px] {templateError
-				? 'text-rose-400'
+			class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[10px] leading-none {templateError
+				? 'text-danger'
 				: ''}"
-			title={templateError ?? 'Template face'}
+			title={templateError ?? 'Live: rendered from a template'}
 		>
 			{'{}'}
 		</span>
 	{/if}
-	<span class="rounded bg-black/50 px-1 py-0.5">{config.label}</span>
+
+	<span
+		class="pointer-events-none absolute top-1 left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-white/0 transition group-hover:bg-white/25"
+		aria-hidden="true"
+	></span>
+
+	<span
+		class="max-w-full truncate rounded bg-slate-950/70 px-1.5 py-0.5 text-[11px] font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]"
+	>
+		{config.label}
+	</span>
 </button>

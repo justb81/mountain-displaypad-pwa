@@ -12,6 +12,19 @@
 
 	let { selected, onselect }: Props = $props();
 
+	let renamingPage = $state<number | null>(null);
+	let renameValue = $state('');
+
+	function startRename(page: number) {
+		renamingPage = page;
+		renameValue = keymap.pageName(page);
+	}
+
+	function commitRename() {
+		if (renamingPage !== null) keymap.setPageName(renamingPage, renameValue);
+		renamingPage = null;
+	}
+
 	function ondropkey(from: number, to: number, copy: boolean) {
 		if (from === to) return;
 		if (copy) {
@@ -35,74 +48,104 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<div class="flex flex-wrap items-center gap-2 text-sm text-slate-400">
-		<button
-			type="button"
-			onclick={() => void connection.goBack()}
-			disabled={keymap.pageHistory.length === 0}
-			class="rounded border border-slate-600 px-2 py-1 text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-		>
-			&larr; Back
-		</button>
-		<button
-			type="button"
-			onclick={() => void connection.jumpToPage(0)}
-			class="hover:text-slate-200 hover:underline"
-		>
-			Home
-		</button>
-		{#each keymap.pageHistory.slice(1) as page (page)}
-			<span>/</span>
+	<div class="flex flex-wrap items-center gap-2">
+		{#if keymap.pageHistory.length > 0}
 			<button
 				type="button"
-				onclick={() => void connection.jumpToPage(page)}
-				class="hover:text-slate-200 hover:underline"
+				onclick={() => void connection.goBack()}
+				class="flex items-center gap-1 rounded-control border border-line px-2.5 py-1.5 text-label text-slate-300 transition hover:bg-slate-700/60"
 			>
-				Page {page + 1}
+				<span aria-hidden="true">&larr;</span> Back
 			</button>
-		{/each}
-		{#if keymap.pageHistory.length > 0}
-			<span>/</span>
-			<span class="font-medium text-slate-200">Page {keymap.activePage + 1}</span>
 		{/if}
-		<label class="ml-auto flex items-center gap-1 text-xs">
-			Jump to
-			<select
-				value={keymap.activePage}
-				onchange={(e) => void connection.jumpToPage(Number(e.currentTarget.value))}
-				class="rounded border border-slate-600 bg-slate-900 px-1 py-0.5 text-slate-200"
-			>
-				{#each Array.from({ length: keymap.pageCount }, (_, i) => i) as pageIndex (pageIndex)}
-					<option value={pageIndex}>
-						Page {pageIndex + 1}{pageIndex === 0 ? ' (home)' : ''}
-					</option>
-				{/each}
-			</select>
-		</label>
+
+		<div
+			class="flex flex-wrap items-center gap-1.5"
+			role={renamingPage === null ? 'tablist' : undefined}
+			aria-label="Pages"
+		>
+			{#each Array.from({ length: keymap.pageCount }, (_, i) => i) as pageIndex (pageIndex)}
+				{@const active = pageIndex === keymap.activePage}
+				<div class="flex items-center gap-0.5">
+					{#if renamingPage === pageIndex}
+						<input
+							class="w-28 rounded-control border border-accent bg-slate-900 px-2 py-1 text-label text-white"
+							value={renameValue}
+							oninput={(e) => (renameValue = e.currentTarget.value)}
+							onblur={commitRename}
+							onkeydown={(e) => {
+								if (e.key === 'Enter') commitRename();
+								if (e.key === 'Escape') renamingPage = null;
+							}}
+						/>
+					{:else}
+						<button
+							type="button"
+							role="tab"
+							aria-selected={active}
+							ondblclick={() => startRename(pageIndex)}
+							onclick={() => void connection.jumpToPage(pageIndex)}
+							title="Double-click to rename"
+							class="rounded-control px-3 py-1.5 text-label font-medium transition
+								{active
+								? 'bg-accent-strong text-white'
+								: 'border border-line text-slate-300 hover:bg-slate-700/60'}"
+						>
+							{keymap.pageName(pageIndex)}
+						</button>
+						{#if active}
+							<button
+								type="button"
+								onclick={() => startRename(pageIndex)}
+								aria-label="Rename this page"
+								title="Rename this page"
+								class="rounded-control p-1.5 text-slate-500 transition hover:bg-slate-700/60 hover:text-slate-200"
+							>
+								<svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5" aria-hidden="true">
+									<path
+										d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.5 8.5a1 1 0 0 1-.39.242l-3 1a1 1 0 0 1-1.265-1.265l1-3a1 1 0 0 1 .242-.39l8.5-8.5.585-.415Z"
+									/>
+								</svg>
+							</button>
+						{/if}
+					{/if}
+				</div>
+			{/each}
+		</div>
+
 		<button
 			type="button"
 			onclick={() => void connection.jumpToPage(keymap.addPage())}
-			class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 transition hover:bg-slate-700"
+			class="rounded-control border border-dashed border-line px-2.5 py-1.5 text-label text-slate-400 transition hover:border-line-strong hover:text-slate-200"
 		>
-			+ Add page
+			+ Page
 		</button>
 	</div>
 
 	<div
-		class="grid gap-3 rounded-2xl bg-slate-900 p-4 shadow-lg"
-		style:grid-template-columns={`repeat(${NUM_KEYS_PER_ROW}, minmax(0, 1fr))`}
+		class="rounded-panel border border-slate-700/60 bg-gradient-to-b from-slate-800 to-slate-900 p-3 shadow-lg sm:p-4"
 	>
-		{#each keymap.keys as config, index (index)}
-			<PadKey
-				{index}
-				{config}
-				pressed={connection.pressed[index]}
-				toggled={connection.toggled[index]}
-				selected={selected === index}
-				{onselect}
-				{ondropkey}
-				{ondroptemplate}
-			/>
-		{/each}
+		<div
+			class="grid gap-2 overflow-x-auto rounded-tile bg-slate-950/60 p-3 shadow-inner sm:gap-3"
+			style:grid-template-columns={`repeat(${NUM_KEYS_PER_ROW}, minmax(3rem, 1fr))`}
+		>
+			{#each keymap.keys as config, index (index)}
+				<PadKey
+					{index}
+					{config}
+					pressed={connection.pressed[index]}
+					toggled={connection.toggled[index]}
+					selected={selected === index}
+					{onselect}
+					{ondropkey}
+					{ondroptemplate}
+				/>
+			{/each}
+		</div>
 	</div>
+
+	<p class="text-caption text-slate-500">
+		Drag a key onto another to swap them (hold ⌘/Ctrl to copy instead), or drag a saved template
+		from the stash below onto a key.
+	</p>
 </div>

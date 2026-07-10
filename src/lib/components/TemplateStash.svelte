@@ -1,6 +1,8 @@
 <script lang="ts">
+	import Button from './ui/Button.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
+	import { toast } from '$lib/state/toast.svelte.js';
 	import { TEMPLATE_DRAG_MIME, templates } from '$lib/state/templates.svelte.js';
 
 	interface Props {
@@ -18,6 +20,7 @@
 		if (!template) return;
 		keymap.update(selected, { ...template.config });
 		if (connection.status === 'connected') void connection.applyKey(selected);
+		toast.success(`Applied "${template.name}" to Key ${selected + 1}.`);
 	}
 
 	function startRename(id: string, name: string) {
@@ -36,11 +39,12 @@
 	}
 </script>
 
-<section class="flex flex-col gap-3 rounded-2xl bg-slate-800 p-5">
-	<h2 class="text-lg font-semibold text-white">Template stash</h2>
+<section class="flex flex-col gap-3 rounded-panel border border-line bg-slate-800/60 p-4">
+	<h2 class="text-h2 font-semibold text-white">Template stash</h2>
 	{#if templates.items.length === 0}
-		<p class="text-sm text-slate-400">
-			No saved templates yet — use "Save as template" on a key to stash it here.
+		<p class="text-label text-slate-400">
+			No saved templates yet — use "Save as template" in the key inspector to stash one here, then
+			drag it onto any key.
 		</p>
 	{:else}
 		<ul class="flex flex-col gap-2">
@@ -49,7 +53,7 @@
 					draggable="true"
 					ondragstart={(e) => ondragstart(e, template.id)}
 					title="Drag onto a key, or use Apply to push it to the selected key"
-					class="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm text-slate-200"
+					class="flex cursor-grab items-center gap-2 rounded-control border border-line bg-slate-900 p-2 text-label text-slate-200 active:cursor-grabbing"
 				>
 					<span
 						class="h-8 w-8 flex-none rounded bg-cover bg-center"
@@ -64,7 +68,7 @@
 					></span>
 					{#if renamingId === template.id}
 						<input
-							class="min-w-0 flex-1 rounded border border-slate-600 bg-slate-950 px-1 py-0.5 text-white"
+							class="min-w-0 flex-1 rounded-control border border-line bg-slate-950 px-1.5 py-1 text-white"
 							value={renameValue}
 							oninput={(e) => (renameValue = e.currentTarget.value)}
 							onblur={commitRename}
@@ -80,21 +84,16 @@
 							{template.name}
 						</button>
 					{/if}
-					<button
-						type="button"
-						onclick={() => apply(template.id)}
-						class="rounded bg-emerald-600 px-2 py-1 text-xs font-medium whitespace-nowrap text-white hover:bg-emerald-500"
-					>
+					<Button variant="success" size="sm" onclick={() => apply(template.id)}>
 						Apply to Key {selected + 1}
-					</button>
-					<button
-						type="button"
+					</Button>
+					<Button
+						size="sm"
 						onclick={() => templates.remove(template.id)}
 						aria-label={`Delete template ${template.name}`}
-						class="rounded border border-slate-600 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
 					>
 						Delete
-					</button>
+					</Button>
 				</li>
 			{/each}
 		</ul>

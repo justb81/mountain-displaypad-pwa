@@ -49,6 +49,8 @@ class Keymap {
 	activePage = $state(0);
 	/** Pages to pop back through on `back()` — runtime navigation, never persisted. */
 	pageHistory = $state<number[]>([]);
+	/** User-given name per page, parallel to `pages`; empty/missing falls back to a default label. */
+	pageNames = $state<(string | undefined)[]>([]);
 	/** The imported/exported profile's own name, if any — carried through Base Camp round-trips. */
 	profileName = $state<string | undefined>(undefined);
 	/** The imported/exported profile's own thumbnail, as a data URL — carried through Base Camp round-trips. */
@@ -77,6 +79,19 @@ class Keymap {
 
 	get pageCount(): number {
 		return this.pages.length;
+	}
+
+	/** The display name for `page` — its custom name if set, otherwise a positional default. */
+	pageName(page: number): string {
+		const custom = this.pageNames[page]?.trim();
+		if (custom) return custom;
+		return page === 0 ? 'Home' : `Page ${page + 1}`;
+	}
+
+	/** Set page `index`'s custom name (blank clears it back to the positional default) and persist. */
+	setPageName(index: number, name: string): void {
+		this.pageNames[index] = name.trim() || undefined;
+		this.persist();
 	}
 
 	/** Merge a partial update into one key (on the active page) and persist. */
@@ -110,6 +125,7 @@ class Keymap {
 		this.pages = [defaultPage()];
 		this.activePage = 0;
 		this.pageHistory = [];
+		this.pageNames = [];
 		this.scriptsApproved = true;
 		this.persist();
 	}
@@ -127,6 +143,7 @@ class Keymap {
 		this.pages = pages;
 		this.activePage = 0;
 		this.pageHistory = [];
+		this.pageNames = [];
 		this.profileName = profileName;
 		this.profileImage = profileImage;
 		this.scriptsApproved = !pagesContainTransform(pages);
@@ -150,6 +167,7 @@ class Keymap {
 	removePage(index: number): void {
 		if (this.pages.length <= 1 || index < 0 || index >= this.pages.length) return;
 		this.pages.splice(index, 1);
+		this.pageNames.splice(index, 1);
 		for (const page of this.pages) {
 			for (let i = 0; i < page.length; i++) {
 				const action = page[i].action;
@@ -198,12 +216,14 @@ class Keymap {
 			if (raw) {
 				const parsed = JSON.parse(raw) as {
 					pages?: KeyConfig[][];
+					pageNames?: (string | undefined)[];
 					profileName?: string;
 					profileImage?: string;
 					scriptsApproved?: boolean;
 				};
 				if (Array.isArray(parsed.pages) && parsed.pages.every((page) => page.length === NUM_KEYS)) {
 					this.pages = parsed.pages;
+					this.pageNames = Array.isArray(parsed.pageNames) ? parsed.pageNames : [];
 					this.profileName = parsed.profileName;
 					this.profileImage = parsed.profileImage;
 					this.scriptsApproved = parsed.scriptsApproved ?? true;
@@ -233,6 +253,7 @@ class Keymap {
 				STORAGE_KEY,
 				JSON.stringify({
 					pages: this.pages,
+					pageNames: this.pageNames,
 					profileName: this.profileName,
 					profileImage: this.profileImage,
 					scriptsApproved: this.scriptsApproved
