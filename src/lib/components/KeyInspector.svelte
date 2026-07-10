@@ -174,7 +174,9 @@
 		backgroundError = undefined;
 		try {
 			const dataUrl = await removeImageBackground(config.secondFace.dataUrl);
-			keymap.update(index, { secondFace: { type: 'image', dataUrl, text: config.secondFace.text } });
+			keymap.update(index, {
+				secondFace: { type: 'image', dataUrl, text: config.secondFace.text }
+			});
 		} catch {
 			backgroundError = 'Could not remove the background from this image.';
 		} finally {

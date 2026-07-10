@@ -78,8 +78,4 @@ export interface KeyConfig {
 
 /** Connection lifecycle of the pad. */
 export type ConnectionStatus =
-	| 'unsupported'
-	| 'disconnected'
-	| 'connecting'
-	| 'connected'
-	| 'error';
+	'unsupported' | 'disconnected' | 'connecting' | 'connected' | 'error';
