@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.2.0...mountain-displaypad-v0.3.0) (2026-07-10)
+
+
+### Features
+
+* add data-driven template key faces (transform + Mustache HTML) ([#37](https://github.com/justb81/mountain-displaypad-pwa/issues/37)) ([a4cca50](https://github.com/justb81/mountain-displaypad-pwa/commit/a4cca50ae828cfa00f420bf65dc3479245ac1094))
+
 ## [0.2.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.1.1...mountain-displaypad-v0.2.0) (2026-07-10)
 
 
