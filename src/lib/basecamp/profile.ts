@@ -13,6 +13,7 @@
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
+import { faceText, withFaceText } from '$lib/types.js';
 import type { KeyAction, KeyConfig, KeyFace, KeyTextStyle, TextAlign } from '$lib/types.js';
 
 /** Result of importing a Base Camp profile: every page plus what didn't survive. */
@@ -289,14 +290,14 @@ function keyConfigFromBinding(
 	const label = title?.trim() || keyLabel;
 
 	let face = resolveFace(binding.base64Image, keyLabel, 'image', warnings);
-	const faceText = parseTextStyle(binding.OptionalText);
-	if (faceText) face = { ...face, text: faceText };
+	const parsedFaceText = parseTextStyle(binding.OptionalText);
+	if (parsedFaceText) face = withFaceText(face, parsedFaceText);
 
 	let secondFace: KeyFace | undefined;
 	if (binding.SecondBase64Image) {
 		secondFace = resolveFace(binding.SecondBase64Image, keyLabel, 'second image', warnings);
-		const secondText = parseTextStyle(binding.SecondOptionalText);
-		if (secondText) secondFace = { ...secondFace, text: secondText };
+		const parsedSecondText = parseTextStyle(binding.SecondOptionalText);
+		if (parsedSecondText) secondFace = withFaceText(secondFace, parsedSecondText);
 	}
 	// Normalize so `face` is always the currently-selected state: our runtime toggle
 	// starts at state 0 (`face`) and flips to state 1 (`secondFace`) on each press.
@@ -499,10 +500,10 @@ function bindingFromKeyConfig(
 			DLLMatrixIndex: DLL_MATRIX_INDICES[index],
 			CustomURL: action.type === 'open-url' ? action.url : undefined,
 			IsActive: parentId === 0,
-			OptionalText: optionalText || serializeTextStyle(key.face.text),
+			OptionalText: optionalText || serializeTextStyle(faceText(key.face)),
 			SecondBase64Image: key.secondFace?.type === 'image' ? key.secondFace.dataUrl : '',
 			SecondImageFilePath: '',
-			SecondOptionalText: serializeTextStyle(key.secondFace?.text),
+			SecondOptionalText: serializeTextStyle(faceText(key.secondFace)),
 			IsSecondDefaultTouchKeyImage: key.secondFace?.type !== 'image',
 			IsHardWarePress: false,
 			// `face` always round-trips as the first/selected state; `secondFace` (if any) as the second.

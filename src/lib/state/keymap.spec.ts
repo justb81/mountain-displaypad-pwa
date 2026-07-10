@@ -6,6 +6,14 @@ function config(label: string): KeyConfig {
 	return { label, face: { type: 'color', color: '#000000' }, action: { type: 'none' } };
 }
 
+function templateConfig(label: string, transform?: string): KeyConfig {
+	return {
+		label,
+		face: { type: 'template', template: '{{x}}', transform },
+		action: { type: 'none' }
+	};
+}
+
 describe('keymap.swap', () => {
 	it('exchanges the two configs by content, leaving other keys untouched', () => {
 		keymap.importAll(keymap.keys.map((_, i) => config(`k${i}`)));
@@ -48,5 +56,44 @@ describe('keymap.copy', () => {
 		keymap.copy(7, 7);
 
 		expect(keymap.keys[7]).toBe(before);
+	});
+});
+
+describe('keymap.scriptsApproved', () => {
+	it('is left approved when an imported profile has no template transforms', () => {
+		keymap.importAll(keymap.keys.map((_, i) => config(`k${i}`)));
+		expect(keymap.scriptsApproved).toBe(true);
+	});
+
+	it('is left approved when an imported template face has no transform', () => {
+		keymap.importAll(keymap.keys.map((_, i) => templateConfig(`k${i}`)));
+		expect(keymap.scriptsApproved).toBe(true);
+	});
+
+	it('requires opt-in when an imported profile carries a template transform', () => {
+		const keys = keymap.keys.map((_, i) => config(`k${i}`));
+		keys[3] = templateConfig('k3', 'return { x: 1 };');
+		keymap.importAll(keys);
+		expect(keymap.scriptsApproved).toBe(false);
+	});
+
+	it('flips back to approved once approveScripts is called', () => {
+		const keys = keymap.keys.map((_, i) => config(`k${i}`));
+		keys[3] = templateConfig('k3', 'return { x: 1 };');
+		keymap.importAll(keys);
+		expect(keymap.scriptsApproved).toBe(false);
+
+		keymap.approveScripts();
+		expect(keymap.scriptsApproved).toBe(true);
+	});
+
+	it('resets to approved on reset()', () => {
+		const keys = keymap.keys.map((_, i) => config(`k${i}`));
+		keys[3] = templateConfig('k3', 'return { x: 1 };');
+		keymap.importAll(keys);
+		expect(keymap.scriptsApproved).toBe(false);
+
+		keymap.reset();
+		expect(keymap.scriptsApproved).toBe(true);
 	});
 });

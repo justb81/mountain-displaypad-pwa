@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
+import { faceText } from '$lib/types.js';
 import type { KeyConfig } from '$lib/types.js';
 import { parseBasecampProfile, serializeBasecampProfile } from './profile.js';
 
@@ -74,7 +75,7 @@ describe('parsing the real Base Camp export', () => {
 
 	it('parses the full OptionalText style block onto the face, not just the title', () => {
 		// M10 ("Discuss"): Center-aligned, default weight.
-		expect(result.pages[0][9].face.text).toEqual({
+		expect(faceText(result.pages[0][9].face)).toEqual({
 			text: 'Discuss',
 			color: '#ffffff',
 			align: 'center',
@@ -83,7 +84,7 @@ describe('parsing the real Base Camp export', () => {
 		});
 		// M12 ("Citizen Dev"): Bottom-aligned label over its inline image face.
 		expect(result.pages[0][11].face.type).toBe('image');
-		expect(result.pages[0][11].face.text).toEqual({
+		expect(faceText(result.pages[0][11].face)).toEqual({
 			text: 'Citizen Dev',
 			color: '#ffffff',
 			align: 'bottom',
@@ -473,8 +474,8 @@ describe('exporting and re-importing', () => {
 		});
 		const { xml } = serializeBasecampProfile([source]);
 		const reimported = parseBasecampProfile(xml);
-		expect(reimported.pages[0][6].face.text).toBeUndefined();
-		expect(reimported.pages[0][6].secondFace?.text).toEqual({
+		expect(faceText(reimported.pages[0][6].face)).toBeUndefined();
+		expect(faceText(reimported.pages[0][6].secondFace)).toEqual({
 			text: 'Muted',
 			color: '#ffffff',
 			align: 'top',
@@ -487,7 +488,9 @@ describe('exporting and re-importing', () => {
 		const source = keys({});
 		const { xml, warnings } = serializeBasecampProfile([source]);
 		expect(warnings).toHaveLength(0);
-		expect(parseBasecampProfile(xml).pages[0].every((k) => k.face.text === undefined)).toBe(true);
+		expect(parseBasecampProfile(xml).pages[0].every((k) => faceText(k.face) === undefined)).toBe(
+			true
+		);
 	});
 
 	it('round-trips a custom profile name and image instead of the hardcoded default', () => {
