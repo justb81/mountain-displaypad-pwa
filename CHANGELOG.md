@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.4.0...mountain-displaypad-v0.4.1) (2026-07-10)
+
+
+### Bug Fixes
+
+* reload template/transform editors when switching keys ([#45](https://github.com/justb81/mountain-displaypad-pwa/issues/45)) ([276fddf](https://github.com/justb81/mountain-displaypad-pwa/commit/276fddf0b2f559cbab0488e61a2227a63be4ca9f))
+
 ## [0.4.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.3.0...mountain-displaypad-v0.4.0) (2026-07-10)
 
 
