@@ -71,6 +71,26 @@ describe('parsing the real Base Camp export', () => {
 		expect(result.profileName).toBe('CPLACE');
 		expect(result.profileImage?.startsWith('data:image/png;base64,')).toBe(true);
 	});
+
+	it('parses the full OptionalText style block onto the face, not just the title', () => {
+		// M10 ("Discuss"): Center-aligned, default weight.
+		expect(result.pages[0][9].face.text).toEqual({
+			text: 'Discuss',
+			color: '#ffffff',
+			align: 'center',
+			fontFamily: 'Arial',
+			fontSize: 12
+		});
+		// M12 ("Citizen Dev"): Bottom-aligned label over its inline image face.
+		expect(result.pages[0][11].face.type).toBe('image');
+		expect(result.pages[0][11].face.text).toEqual({
+			text: 'Citizen Dev',
+			color: '#ffffff',
+			align: 'bottom',
+			fontFamily: 'Arial',
+			fontSize: 12
+		});
+	});
 });
 
 describe('parsing multi-page / folder navigation', () => {
@@ -401,6 +421,73 @@ describe('exporting and re-importing', () => {
 
 	it('rejects an empty page list', () => {
 		expect(() => serializeBasecampProfile([])).toThrow(RangeError);
+	});
+
+	it('round-trips a text label burned onto a colour-fallback face', () => {
+		const source = keys({
+			8: {
+				label: 'Citizen Dev',
+				face: {
+					type: 'color',
+					color: '#000000',
+					text: {
+						text: 'Citizen Dev',
+						color: '#ff0000',
+						align: 'bottom',
+						fontFamily: 'Arial',
+						fontSize: 16,
+						bold: true
+					}
+				},
+				action: { type: 'none' }
+			}
+		});
+		const { xml, warnings } = serializeBasecampProfile([source]);
+		expect(warnings).toHaveLength(0);
+		expect(parseBasecampProfile(xml).pages[0][8].face).toEqual({
+			type: 'color',
+			color: '#000000',
+			text: {
+				text: 'Citizen Dev',
+				color: '#ff0000',
+				align: 'bottom',
+				fontFamily: 'Arial',
+				fontSize: 16,
+				bold: true
+			}
+		});
+	});
+
+	it('round-trips a text label on the second face independently of the first', () => {
+		const source = keys({
+			6: {
+				label: 'Mic',
+				face: { type: 'color', color: '#000000' },
+				secondFace: {
+					type: 'image',
+					dataUrl: 'data:image/png;base64,BBBB',
+					text: { text: 'Muted', color: '#ffffff', align: 'top' }
+				},
+				action: { type: 'none' }
+			}
+		});
+		const { xml } = serializeBasecampProfile([source]);
+		const reimported = parseBasecampProfile(xml);
+		expect(reimported.pages[0][6].face.text).toBeUndefined();
+		expect(reimported.pages[0][6].secondFace?.text).toEqual({
+			text: 'Muted',
+			color: '#ffffff',
+			align: 'top',
+			fontFamily: 'Arial',
+			fontSize: 12
+		});
+	});
+
+	it('omits OptionalText entirely for a face with no label', () => {
+		const source = keys({});
+		const { xml, warnings } = serializeBasecampProfile([source]);
+		expect(warnings).toHaveLength(0);
+		expect(parseBasecampProfile(xml).pages[0].every((k) => k.face.text === undefined)).toBe(true);
 	});
 
 	it('round-trips a custom profile name and image instead of the hardcoded default', () => {
