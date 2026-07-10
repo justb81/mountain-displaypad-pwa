@@ -44,11 +44,7 @@ describe('templates.save', () => {
 	});
 
 	it('does not throw and leaves previewDataUrl unset for a template face outside the browser', async () => {
-		const saved = await templates.save(
-			'Clock',
-			templateConfig('Clock', 'return { x: 1 };'),
-			true
-		);
+		const saved = await templates.save('Clock', templateConfig('Clock', 'return { x: 1 };'), true);
 
 		expect(saved.previewDataUrl).toBeUndefined();
 	});
