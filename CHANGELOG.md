@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.5.0...mountain-displaypad-v0.6.0) (2026-07-12)
+
+
+### Features
+
+* auto-load a site icon for Open URL keys ([#41](https://github.com/justb81/mountain-displaypad-pwa/issues/41)) ([#62](https://github.com/justb81/mountain-displaypad-pwa/issues/62)) ([ae770ef](https://github.com/justb81/mountain-displaypad-pwa/commit/ae770ef9f7dd9d2fe04d0785dbc8267c523cf8ef))
+* drop images, SVGs, and image URLs straight onto a key ([#61](https://github.com/justb81/mountain-displaypad-pwa/issues/61)) ([8b50109](https://github.com/justb81/mountain-displaypad-pwa/commit/8b50109d65a71017257d088be16970e0c0b82974))
+* **pages:** add a delete-page control ([#58](https://github.com/justb81/mountain-displaypad-pwa/issues/58)) ([dd48f5d](https://github.com/justb81/mountain-displaypad-pwa/commit/dd48f5df0af20e68a8f3f0f2bbb4fc632dbcb3af)), closes [#52](https://github.com/justb81/mountain-displaypad-pwa/issues/52)
+
 ## [0.5.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.4.2...mountain-displaypad-v0.5.0) (2026-07-10)
 
 
