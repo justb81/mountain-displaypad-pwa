@@ -82,6 +82,72 @@ describe('keymap.resetKey', () => {
 	});
 });
 
+describe('keymap.removePage', () => {
+	function openFolderConfig(label: string, page: number): KeyConfig {
+		return {
+			label,
+			face: { type: 'color', color: '#000000' },
+			action: { type: 'open-folder', page }
+		};
+	}
+
+	it('drops the page, its name, and shifts later pages down', () => {
+		keymap.importPages([
+			keymap.keys.map((_, i) => config(`a${i}`)),
+			keymap.keys.map((_, i) => config(`b${i}`)),
+			keymap.keys.map((_, i) => config(`c${i}`))
+		]);
+		keymap.setPageName(0, 'First');
+		keymap.setPageName(2, 'Third');
+
+		keymap.removePage(1);
+
+		expect(keymap.pageCount).toBe(2);
+		expect(keymap.pages[1][0].label).toBe('c0');
+		expect(keymap.pageName(0)).toBe('First');
+		expect(keymap.pageName(1)).toBe('Third');
+	});
+
+	it('is a no-op when only one page remains', () => {
+		keymap.importAll(keymap.keys.map((_, i) => config(`k${i}`)));
+
+		keymap.removePage(0);
+
+		expect(keymap.pageCount).toBe(1);
+		expect(keymap.keys[0].label).toBe('k0');
+	});
+
+	it('clears folder links to the removed page and re-targets links to shifted pages', () => {
+		const linkPage = keymap.keys.map((_, i) => config(`l${i}`));
+		linkPage[0] = openFolderConfig('to-1', 1);
+		linkPage[1] = openFolderConfig('to-2', 2);
+		keymap.importPages([
+			linkPage,
+			keymap.keys.map((_, i) => config(`b${i}`)),
+			keymap.keys.map((_, i) => config(`c${i}`))
+		]);
+
+		keymap.removePage(1);
+
+		expect(keymap.pages[0][0].action).toEqual({ type: 'none' });
+		expect(keymap.pages[0][1].action).toEqual({ type: 'open-folder', page: 1 });
+	});
+
+	it('keeps activePage pointing at the same page after an earlier one is removed', () => {
+		keymap.importPages([
+			keymap.keys.map((_, i) => config(`a${i}`)),
+			keymap.keys.map((_, i) => config(`b${i}`)),
+			keymap.keys.map((_, i) => config(`c${i}`))
+		]);
+		keymap.switchPage(2);
+
+		keymap.removePage(0);
+
+		expect(keymap.activePage).toBe(1);
+		expect(keymap.keys[0].label).toBe('c0');
+	});
+});
+
 describe('keymap.scriptsApproved', () => {
 	it('is left approved when an imported profile has no template transforms', () => {
 		keymap.importAll(keymap.keys.map((_, i) => config(`k${i}`)));
