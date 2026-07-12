@@ -24,6 +24,10 @@ const MIN_REFRESH_MINUTES = 1;
 const REFRESH_JITTER_MS = 2000;
 /** Minimum gap between a key's webhook fires, so a stuck/bouncing key can't hammer an endpoint. */
 const WEBHOOK_MIN_INTERVAL_MS = 500;
+/** Some browsers report a blocked pop-up by closing it almost immediately rather than returning null. */
+const POPUP_CLOSE_CHECK_MS = 300;
+const POPUP_BLOCKED_MESSAGE =
+	'Pop-up blocked — allow pop-ups for this site so key presses can open links.';
 
 class Connection {
 	status = $state<ConnectionStatus>('disconnected');
@@ -31,6 +35,8 @@ class Connection {
 	pressed = $state<boolean[]>(Array(NUM_KEYS).fill(false));
 	/** Per-key error from the most recent remote-face fetch, `null` once it succeeds. */
 	liveFaceErrors = $state<(string | null)[]>(Array(NUM_KEYS).fill(null));
+	/** Per-key warning when an `open-url` action's `window.open()` was silently swallowed by the popup blocker. */
+	popupBlockedErrors = $state<(string | null)[]>(Array(NUM_KEYS).fill(null));
 	/** Which face a toggle key (one with `secondFace`) is currently showing: 0 = `face`, 1 = `secondFace`. */
 	toggled = $state<boolean[]>(Array(NUM_KEYS).fill(false));
 
@@ -199,12 +205,34 @@ class Connection {
 
 	private runAction(index: number): void {
 		const { action } = keymap.keys[index];
-		if (action.type === 'open-url' && action.url) window.open(action.url, '_blank', 'noopener');
+		if (action.type === 'open-url' && action.url) this.openUrl(index, action.url);
 		else if (action.type === 'copy-text' && action.text)
 			void navigator.clipboard?.writeText(action.text);
 		else if (action.type === 'webhook' && action.url) this.fireWebhook(index, action);
 		else if (action.type === 'open-folder') void this.goToPage(action.page);
 		else if (action.type === 'back') void this.goBack();
+	}
+
+	/**
+	 * Open a key's `open-url` action target and detect a popup-blocker swallowing it.
+	 * This fires from the WebHID `keydown` handler (an async `inputreport` event), not
+	 * a real DOM click, so it likely lacks "user activation" and can be silently blocked
+	 * even while the window is focused. We sever `opener` manually (rather than via the
+	 * `noopener` window-feature) so we still get a window reference back to inspect —
+	 * passing `noopener` itself makes browsers return `null` unconditionally, which would
+	 * make success and blocked indistinguishable.
+	 */
+	private openUrl(index: number, url: string): void {
+		const win = window.open(url, '_blank');
+		if (win) win.opener = null;
+		if (!win || win.closed) {
+			this.popupBlockedErrors[index] = POPUP_BLOCKED_MESSAGE;
+			return;
+		}
+		this.popupBlockedErrors[index] = null;
+		setTimeout(() => {
+			if (win.closed) this.popupBlockedErrors[index] = POPUP_BLOCKED_MESSAGE;
+		}, POPUP_CLOSE_CHECK_MS);
 	}
 
 	/** Navigate to `page`, remembering history, and repaint the hardware if connected. */
