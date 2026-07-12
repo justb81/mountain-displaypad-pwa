@@ -225,6 +225,12 @@ class Connection {
 		await this.afterNavigate();
 	}
 
+	/** Delete `page` (a no-op on the last remaining page) and repaint the now-active page if connected. */
+	async deletePage(page: number): Promise<void> {
+		keymap.removePage(page);
+		await this.afterNavigate();
+	}
+
 	/** Re-derive per-key runtime state for the now-active page and push it to the hardware. */
 	private async afterNavigate(): Promise<void> {
 		this.toggled = Array(NUM_KEYS).fill(false);

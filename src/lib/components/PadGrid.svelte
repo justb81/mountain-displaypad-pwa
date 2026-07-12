@@ -25,6 +25,13 @@
 		renamingPage = null;
 	}
 
+	function deletePage(page: number) {
+		const confirmed = confirm(
+			`Delete "${keymap.pageName(page)}"? Its keys will be removed and any folder links to it cleared.`
+		);
+		if (confirmed) void connection.deletePage(page);
+	}
+
 	function ondropkey(from: number, to: number, copy: boolean) {
 		if (from === to) return;
 		if (copy) {
@@ -107,6 +114,28 @@
 									/>
 								</svg>
 							</button>
+							{#if keymap.pageCount > 1}
+								<button
+									type="button"
+									onclick={() => deletePage(pageIndex)}
+									aria-label="Delete this page"
+									title="Delete this page"
+									class="rounded-control p-1.5 text-slate-500 transition hover:bg-rose-500/20 hover:text-rose-300"
+								>
+									<svg
+										viewBox="0 0 20 20"
+										fill="currentColor"
+										class="h-3.5 w-3.5"
+										aria-hidden="true"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M8.75 1a1 1 0 0 0-.95.68L7.36 3H4a1 1 0 0 0 0 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5a1 1 0 1 0 0-2h-3.36l-.44-1.32A1 1 0 0 0 11.25 1h-2.5ZM8 7a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1Zm4 0a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1Z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</button>
+							{/if}
 						{/if}
 					{/if}
 				</div>
