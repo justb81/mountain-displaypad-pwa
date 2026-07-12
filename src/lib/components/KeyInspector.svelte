@@ -5,6 +5,7 @@
 	import SegmentedControl from './ui/SegmentedControl.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { NUM_KEYS } from '$lib/displaypad/protocol.js';
+	import { fetchFaviconDataUrl, hostnameFrom } from '$lib/displaypad/favicon.js';
 	import { removeImageBackground } from '$lib/displaypad/raster.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { templates } from '$lib/state/templates.svelte.js';
@@ -44,7 +45,11 @@
 	let faceKindOverride = $state<KeyFace['type'] | null>(null);
 	const faceKind = $derived(faceKindOverride ?? config.face.type);
 	$effect(() => {
-		if (index >= 0) faceKindOverride = null;
+		if (index >= 0) {
+			faceKindOverride = null;
+			lastAutoIconUrl = '';
+			clearTimeout(iconDebounce);
+		}
 	});
 
 	let secondFaceKindOverride = $state<'color' | 'image' | null>(null);
@@ -310,6 +315,60 @@
 			backgroundError = 'Could not remove the background from this image.';
 		} finally {
 			removingSecondBackground = false;
+		}
+	}
+
+	/** Debounce window before a freshly-typed Open URL auto-populates the key icon. */
+	const ICON_DEBOUNCE_MS = 700;
+	let loadingIcon = $state(false);
+	/** The Open URL we last auto-loaded an icon for, so an unchanged URL isn't refetched. */
+	let lastAutoIconUrl = '';
+	let iconDebounce: ReturnType<typeof setTimeout>;
+
+	/** A never-customised default face — the only face auto-icon is allowed to overwrite. */
+	function isBlankFace(face: KeyFace): boolean {
+		return face.type === 'color' && face.color === '#000000' && !face.text;
+	}
+
+	/** Update the Open URL target and, on a still-blank key, schedule an auto icon fetch. */
+	function setOpenUrl(url: string) {
+		keymap.update(index, { action: { type: 'open-url', url } });
+		clearTimeout(iconDebounce);
+		if (!isBlankFace(config.face) || !hostnameFrom(url)) return;
+		const forIndex = index;
+		iconDebounce = setTimeout(() => void autoLoadIcon(url, forIndex), ICON_DEBOUNCE_MS);
+	}
+
+	/** Best-effort auto-populate: fill an untouched key with the site's icon, quietly doing nothing on failure. */
+	async function autoLoadIcon(url: string, forIndex: number) {
+		if (url === lastAutoIconUrl) return;
+		const dataUrl = await fetchFaviconDataUrl(url);
+		if (!dataUrl) return;
+		// Bail if selection moved, the URL was edited again, or the face is no longer blank.
+		const cfg = keymap.keys[forIndex];
+		if (forIndex !== index || cfg?.action.type !== 'open-url' || cfg.action.url !== url) return;
+		if (!isBlankFace(cfg.face)) return;
+		lastAutoIconUrl = url;
+		keymap.update(forIndex, { face: { type: 'image', dataUrl } });
+	}
+
+	/** Explicit "Use site icon" button — fetches the icon and overwrites the current face (keeping any text label). */
+	async function loadIconNow() {
+		if (config.action.type !== 'open-url') return;
+		const url = config.action.url;
+		if (!hostnameFrom(url)) return;
+		loadingIcon = true;
+		try {
+			const dataUrl = await fetchFaviconDataUrl(url);
+			if (!dataUrl) {
+				toast.error('Could not find an icon for that URL.');
+				return;
+			}
+			lastAutoIconUrl = url;
+			keymap.update(index, { face: { type: 'image', dataUrl, text: faceText(config.face) } });
+			toast.success('Loaded the site icon.');
+		} finally {
+			loadingIcon = false;
 		}
 	}
 
@@ -857,13 +916,25 @@
 	</label>
 
 	{#if config.action.type === 'open-url'}
-		<input
-			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
-			placeholder="https://example.com"
-			value={config.action.url}
-			oninput={(e) =>
-				keymap.update(index, { action: { type: 'open-url', url: e.currentTarget.value } })}
-		/>
+		<div class="flex items-center gap-2">
+			<input
+				class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+				placeholder="https://example.com"
+				value={config.action.url}
+				oninput={(e) => setOpenUrl(e.currentTarget.value)}
+			/>
+			<Button
+				size="sm"
+				onclick={() => void loadIconNow()}
+				disabled={loadingIcon || !hostnameFrom(config.action.url)}
+			>
+				{loadingIcon ? 'Loading…' : 'Use site icon'}
+			</Button>
+		</div>
+		<Hint>
+			A blank key auto-loads the site's icon when you enter a URL. "Use site icon" fetches it (favicon,
+			app or social image, via unavatar.io) for an already-styled key too.
+		</Hint>
 		{#if connection.popupBlockedErrors[index]}
 			<Hint tone="danger">{connection.popupBlockedErrors[index]}</Hint>
 		{/if}
