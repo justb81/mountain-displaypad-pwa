@@ -864,6 +864,9 @@
 			oninput={(e) =>
 				keymap.update(index, { action: { type: 'open-url', url: e.currentTarget.value } })}
 		/>
+		{#if connection.popupBlockedErrors[index]}
+			<Hint tone="danger">{connection.popupBlockedErrors[index]}</Hint>
+		{/if}
 	{:else if config.action.type === 'copy-text'}
 		<input
 			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
