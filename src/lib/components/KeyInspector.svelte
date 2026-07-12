@@ -932,8 +932,8 @@
 			</Button>
 		</div>
 		<Hint>
-			A blank key auto-loads the site's icon when you enter a URL. "Use site icon" fetches it (favicon,
-			app or social image, via unavatar.io) for an already-styled key too.
+			A blank key auto-loads the site's icon when you enter a URL. "Use site icon" fetches it
+			(favicon, app or social image, via unavatar.io) for an already-styled key too.
 		</Hint>
 		{#if connection.popupBlockedErrors[index]}
 			<Hint tone="danger">{connection.popupBlockedErrors[index]}</Hint>
