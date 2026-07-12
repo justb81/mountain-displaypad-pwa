@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { NUM_KEYS_PER_ROW } from '$lib/displaypad/protocol.js';
+	import { planFromDrop, type DropInput, type DropPlan } from '$lib/displaypad/drop.js';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { templates } from '$lib/state/templates.svelte.js';
+	import { toast } from '$lib/state/toast.svelte.js';
+	import type { KeyFace } from '$lib/types.js';
 	import PadKey from './PadKey.svelte';
 
 	interface Props {
@@ -51,6 +54,58 @@
 		if (!template) return;
 		keymap.update(to, { ...template.config });
 		if (connection.status === 'connected') void connection.applyKey(to);
+	}
+
+	function readFile(file: File, as: 'dataUrl' | 'text'): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(String(reader.result));
+			reader.onerror = () => reject(reader.error ?? new Error('Could not read the dropped file.'));
+			if (as === 'dataUrl') reader.readAsDataURL(file);
+			else reader.readAsText(file);
+		});
+	}
+
+	/** Build the key face an external drop should produce (reads file contents where needed). */
+	async function faceFromPlan(plan: DropPlan): Promise<KeyFace> {
+		switch (plan.kind) {
+			case 'image-file':
+				return { type: 'image', dataUrl: await readFile(plan.file, 'dataUrl') };
+			case 'image-data-url':
+				return { type: 'image', dataUrl: plan.url };
+			case 'svg-file':
+				return { type: 'template', template: await readFile(plan.file, 'text') };
+			case 'remote-url':
+				return { type: 'remote', url: plan.url };
+		}
+	}
+
+	async function ondropexternal(payload: DropInput, to: number) {
+		const plan = planFromDrop(payload);
+		if (!plan) {
+			toast.error('Drop a PNG, SVG, JPG, GIF or WebP image, or an image URL.');
+			return;
+		}
+		let face: KeyFace;
+		try {
+			face = await faceFromPlan(plan);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Could not read the dropped file.');
+			return;
+		}
+		keymap.update(to, { face });
+		connection.syncLiveTimer(to);
+		if (connection.status === 'connected') {
+			await connection.applyKey(to);
+			const liveError = connection.liveFaceErrors[to];
+			if (liveError) {
+				toast.error(liveError);
+				return;
+			}
+		}
+		toast.success(
+			`Set Key ${to + 1} from the dropped ${plan.kind === 'remote-url' ? 'URL' : 'image'}.`
+		);
 	}
 </script>
 
@@ -168,6 +223,7 @@
 					{onselect}
 					{ondropkey}
 					{ondroptemplate}
+					{ondropexternal}
 				/>
 			{/each}
 		</div>
@@ -175,6 +231,7 @@
 
 	<p class="text-caption text-slate-500">
 		Drag a key onto another to swap them (hold ⌘/Ctrl to copy instead), or drag a saved template
-		from the stash below onto a key.
+		from the stash below onto a key. You can also drop an image file, an SVG, or an image URL from
+		your file manager or browser straight onto a key.
 	</p>
 </div>

@@ -2,6 +2,7 @@
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { templatePreview } from '$lib/state/templatePreview.svelte.js';
 	import { TEMPLATE_DRAG_MIME } from '$lib/state/templates.svelte.js';
+	import type { DropInput } from '$lib/displaypad/drop.js';
 	import type { KeyConfig } from '$lib/types.js';
 
 	/** Custom MIME type scoping drag data to key tiles within this app. */
@@ -19,10 +20,21 @@
 		ondropkey: (from: number, to: number, copy: boolean) => void;
 		/** Fired when a stash template tile is dropped onto this one. */
 		ondroptemplate: (templateId: string, to: number) => void;
+		/** Fired when an external image/SVG file or image URL is dropped onto this one. */
+		ondropexternal: (payload: DropInput, to: number) => void;
 	}
 
-	let { index, config, pressed, toggled, selected, onselect, ondropkey, ondroptemplate }: Props =
-		$props();
+	let {
+		index,
+		config,
+		pressed,
+		toggled,
+		selected,
+		onselect,
+		ondropkey,
+		ondroptemplate,
+		ondropexternal
+	}: Props = $props();
 
 	const activeFace = $derived(toggled && config.secondFace ? config.secondFace : config.face);
 	const background = $derived(activeFace.type === 'color' ? activeFace.color : undefined);
@@ -63,20 +75,34 @@
 		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copyMove';
 	}
 
+	/** An internal key/template drag reorders keys; anything else is an external file/URL drop. */
+	function isInternalDrag(types: readonly string[]): boolean {
+		return types.includes(DRAG_MIME) || types.includes(TEMPLATE_DRAG_MIME);
+	}
+
 	function acceptsDrag(event: DragEvent): boolean {
 		const types = event.dataTransfer?.types;
-		return !!types && (types.includes(DRAG_MIME) || types.includes(TEMPLATE_DRAG_MIME));
+		if (!types) return false;
+		// Internal reorder/template drags, plus external files or a dragged image URL.
+		return (
+			isInternalDrag(types) ||
+			types.includes('Files') ||
+			types.includes('text/uri-list') ||
+			types.includes('text/plain')
+		);
 	}
 
 	function ondragover(event: DragEvent) {
 		if (!acceptsDrag(event)) return;
 		event.preventDefault();
 		if (event.dataTransfer) {
-			event.dataTransfer.dropEffect = event.dataTransfer.types.includes(TEMPLATE_DRAG_MIME)
-				? 'copy'
-				: event.ctrlKey || event.altKey
+			const types = event.dataTransfer.types;
+			event.dataTransfer.dropEffect =
+				!isInternalDrag(types) || types.includes(TEMPLATE_DRAG_MIME)
 					? 'copy'
-					: 'move';
+					: event.ctrlKey || event.altKey
+						? 'copy'
+						: 'move';
 		}
 	}
 
@@ -92,16 +118,31 @@
 
 	function ondrop(event: DragEvent) {
 		dragOver = false;
-		const templateId = event.dataTransfer?.getData(TEMPLATE_DRAG_MIME);
+		const dt = event.dataTransfer;
+		if (!dt) return;
+
+		const templateId = dt.getData(TEMPLATE_DRAG_MIME);
 		if (templateId) {
 			event.preventDefault();
 			ondroptemplate(templateId, index);
 			return;
 		}
-		const raw = event.dataTransfer?.getData(DRAG_MIME);
-		if (!raw) return;
+		const raw = dt.getData(DRAG_MIME);
+		if (raw) {
+			event.preventDefault();
+			ondropkey(Number(raw), index, event.ctrlKey || event.altKey);
+			return;
+		}
+		// External drop: pull everything off the DataTransfer synchronously (it is
+		// emptied once the handler returns), then hand it up for async processing.
+		const payload: DropInput = {
+			files: Array.from(dt.files),
+			uriList: dt.getData('text/uri-list'),
+			text: dt.getData('text/plain')
+		};
+		if (!payload.files?.length && !payload.uriList && !payload.text) return;
 		event.preventDefault();
-		ondropkey(Number(raw), index, event.ctrlKey || event.altKey);
+		ondropexternal(payload, index);
 	}
 </script>
 
