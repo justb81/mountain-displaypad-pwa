@@ -131,4 +131,16 @@
 
 		<KeyInspector index={selected} onmove={(i) => (selected = i)} />
 	</main>
+
+	<footer class="mt-auto border-t border-line pt-4 text-caption text-slate-500">
+		Site icons for Open URL keys are fetched via
+		<a
+			href="https://unavatar.io"
+			target="_blank"
+			rel="noreferrer"
+			class="text-slate-400 underline decoration-slate-700 underline-offset-2 hover:text-accent-soft"
+		>
+			unavatar.io</a
+		>.
+	</footer>
 </div>

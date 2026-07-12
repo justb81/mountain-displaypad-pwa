@@ -48,6 +48,7 @@
 		if (index >= 0) {
 			faceKindOverride = null;
 			lastAutoIconUrl = '';
+			pendingIcon = null;
 			clearTimeout(iconDebounce);
 		}
 	});
@@ -321,6 +322,8 @@
 	/** Debounce window before a freshly-typed Open URL auto-populates the key icon. */
 	const ICON_DEBOUNCE_MS = 700;
 	let loadingIcon = $state(false);
+	/** A fetched icon awaiting confirmation before it overwrites a non-blank face — see {@link loadIconNow}. */
+	let pendingIcon = $state<string | null>(null);
 	/** The Open URL we last auto-loaded an icon for, so an unchanged URL isn't refetched. */
 	let lastAutoIconUrl = '';
 	let iconDebounce: ReturnType<typeof setTimeout>;
@@ -352,24 +355,39 @@
 		keymap.update(forIndex, { face: { type: 'image', dataUrl } });
 	}
 
-	/** Explicit "Use site icon" button — fetches the icon and overwrites the current face (keeping any text label). */
+	/**
+	 * Explicit "Use site icon" button — fetches the icon and shows it as a preview.
+	 * It is never applied silently: {@link applyPendingIcon} does the actual overwrite
+	 * once the user confirms, so an existing face (image, colour, template) is never
+	 * clobbered without them seeing the replacement first.
+	 */
 	async function loadIconNow() {
 		if (config.action.type !== 'open-url') return;
 		const url = config.action.url;
 		if (!hostnameFrom(url)) return;
 		loadingIcon = true;
+		pendingIcon = null;
 		try {
 			const dataUrl = await fetchFaviconDataUrl(url);
 			if (!dataUrl) {
 				toast.error('Could not find an icon for that URL.');
 				return;
 			}
-			lastAutoIconUrl = url;
-			keymap.update(index, { face: { type: 'image', dataUrl, text: faceText(config.face) } });
-			toast.success('Loaded the site icon.');
+			pendingIcon = dataUrl;
 		} finally {
 			loadingIcon = false;
 		}
+	}
+
+	/** Commit the previewed icon as the key's image face (keeping any text label) and dismiss the preview. */
+	function applyPendingIcon() {
+		if (!pendingIcon) return;
+		if (config.action.type === 'open-url') lastAutoIconUrl = config.action.url;
+		keymap.update(index, {
+			face: { type: 'image', dataUrl: pendingIcon, text: faceText(config.face) }
+		});
+		pendingIcon = null;
+		toast.success('Loaded the site icon.');
 	}
 
 	function setActionType(type: KeyAction['type']) {
@@ -933,8 +951,34 @@
 		</div>
 		<Hint>
 			A blank key auto-loads the site's icon when you enter a URL. "Use site icon" fetches it
-			(favicon, app or social image, via unavatar.io) for an already-styled key too.
+			(favicon, app or social image) for an already-styled key too — icons by
+			<a
+				href="https://unavatar.io"
+				target="_blank"
+				rel="noreferrer"
+				class="text-accent-soft underline underline-offset-2">unavatar.io</a
+			>.
 		</Hint>
+		{#if pendingIcon}
+			<div class="flex items-center gap-3 rounded-control border border-line bg-slate-900 p-2">
+				<img
+					src={pendingIcon}
+					alt="Fetched icon preview"
+					class="h-14 w-14 flex-none rounded-control border border-line bg-slate-950 object-contain"
+				/>
+				<div class="flex flex-col items-start gap-1.5 text-label text-slate-300">
+					<span>
+						{config.face.type === 'color' && config.face.color === '#000000' && !config.face.text
+							? 'Use this icon as the key face?'
+							: 'Replace the current face with this icon?'}
+					</span>
+					<div class="flex gap-2">
+						<Button size="sm" variant="success" onclick={applyPendingIcon}>Use this icon</Button>
+						<Button size="sm" onclick={() => (pendingIcon = null)}>Cancel</Button>
+					</div>
+				</div>
+			</div>
+		{/if}
 		{#if connection.popupBlockedErrors[index]}
 			<Hint tone="danger">{connection.popupBlockedErrors[index]}</Hint>
 		{/if}
