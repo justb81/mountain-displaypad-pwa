@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.6.0...mountain-displaypad-v0.7.0) (2026-07-13)
+
+
+### Features
+
+* Update footer to show version and GitHub link ([#65](https://github.com/justb81/mountain-displaypad-pwa/issues/65)) ([684ea5e](https://github.com/justb81/mountain-displaypad-pwa/commit/684ea5e8ace4c6cae9db52b5aac2e208bb1102a5))
+
+
+### Bug Fixes
+
+* Potential fix for code scanning alert no. 8: Workflow does not contain permissions ([#63](https://github.com/justb81/mountain-displaypad-pwa/issues/63)) ([0c7bdce](https://github.com/justb81/mountain-displaypad-pwa/commit/0c7bdce4f019f140928ded7fa1f3f795e864ce33))
+
 ## [0.6.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.5.0...mountain-displaypad-v0.6.0) (2026-07-12)
 
 
