@@ -99,7 +99,10 @@
 						name="brightness"
 						value={String(connection.brightness)}
 						onchange={(v) => void connection.setBrightness(Number(v) as BrightnessLevel)}
-						options={BRIGHTNESS_LEVELS.map((level) => ({ value: String(level), label: `${level}%` }))}
+						options={BRIGHTNESS_LEVELS.map((level) => ({
+							value: String(level),
+							label: `${level}%`
+						}))}
 					/>
 				</div>
 				<div class="my-1 border-t border-line"></div>
