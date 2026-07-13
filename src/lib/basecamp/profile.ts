@@ -243,7 +243,7 @@ function buildPages(bindings: RawBinding[], warnings: string[]): KeyConfig[][] {
 			} else if (byParent.has(folderTriggerId)) {
 				linked.add(folderTriggerId);
 				const childPage = buildPage(folderTriggerId, childAncestry);
-				keys[index] = { ...config, action: { type: 'open-folder', page: childPage } };
+				keys[index] = { ...config, action: { type: 'navigate', target: childPage } };
 			} else {
 				warnings.push(
 					`${binding.KeyName}: its "Create Folder" sub-page is empty — imported without an action.`
@@ -319,7 +319,7 @@ function keyConfigFromBinding(
 			);
 		}
 	} else if (binding.FunctionType === 'Back') {
-		action = { type: 'back' };
+		action = { type: 'navigate', target: 'back' };
 	} else if (binding.FunctionType && binding.FunctionType !== 'Default') {
 		const detail = binding.SubFunctionType
 			? `${binding.FunctionType} → ${binding.SubFunctionType}`
@@ -440,12 +440,7 @@ function bindingFromKeyConfig(
 ): { binding: Record<string, unknown>; folderId?: number; childPage?: number } {
 	const keyName = `M${index + 1}`;
 	let action = key.action;
-	if (action.type === 'copy-text') {
-		warnings.push(
-			`${keyName} ("${key.label}"): "copy text" has no equivalent in the DisplayPad profile format — exported as unassigned.`
-		);
-		action = { type: 'none' };
-	} else if (action.type === 'webhook') {
+	if (action.type === 'webhook') {
 		warnings.push(
 			`${keyName} ("${key.label}"): "webhook" has no equivalent in the DisplayPad profile format — exported as unassigned.`
 		);
@@ -463,14 +458,14 @@ function bindingFromKeyConfig(
 		functionType = 'Run browser';
 		subFunctionType = 'Run browser';
 		functionValue = 'Run browser';
-	} else if (action.type === 'open-folder') {
+	} else if (action.type === 'navigate' && action.target !== 'back') {
 		folderId = allocateFolderId();
-		childPage = action.page;
+		childPage = action.target;
 		functionType = 'Create Folder';
 		subFunctionType = key.label;
 		functionValue = key.label;
 		optionalText = JSON.stringify({ Id: folderId, TextTitle: key.label });
-	} else if (action.type === 'back') {
+	} else if (action.type === 'navigate' && action.target === 'back') {
 		functionType = 'Back';
 		functionValue = 'Back';
 	}

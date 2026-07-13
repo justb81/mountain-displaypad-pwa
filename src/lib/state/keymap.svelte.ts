@@ -6,15 +6,15 @@
  * pad is the connection store's job.
  *
  * The keymap is a *list of pages* (each a flat 12-`KeyConfig` grid), mirroring
- * Base Camp's folder navigation: an `open-folder` action jumps `activePage` to
- * another page, `back` returns to wherever it was entered from. `keys` always
+ * Base Camp's page navigation: a `navigate` action either jumps `activePage` to
+ * another page or returns to wherever it was entered from. `keys` always
  * reads/writes the active page, so most of the app can keep treating the
  * keymap as a flat 12-key grid.
  */
 
 import { browser } from '$app/environment';
 import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-import type { KeyConfig } from '$lib/types.js';
+import { migratePages, type KeyConfig } from '$lib/types.js';
 
 /** Whether any key on any page carries a `template` face with a (potentially untrusted) transform. */
 function pagesContainTransform(pages: KeyConfig[][]): boolean {
@@ -140,7 +140,7 @@ class Keymap {
 		if (pages.length === 0 || pages.some((page) => page.length !== NUM_KEYS)) {
 			throw new RangeError(`Each page must have ${NUM_KEYS} keys.`);
 		}
-		this.pages = pages;
+		this.pages = migratePages(pages);
 		this.activePage = 0;
 		this.pageHistory = [];
 		this.pageNames = [];
@@ -171,10 +171,10 @@ class Keymap {
 		for (const page of this.pages) {
 			for (let i = 0; i < page.length; i++) {
 				const action = page[i].action;
-				if (action.type !== 'open-folder') continue;
-				if (action.page === index) page[i] = { ...page[i], action: { type: 'none' } };
-				else if (action.page > index)
-					page[i] = { ...page[i], action: { ...action, page: action.page - 1 } };
+				if (action.type !== 'navigate' || action.target === 'back') continue;
+				if (action.target === index) page[i] = { ...page[i], action: { type: 'none' } };
+				else if (action.target > index)
+					page[i] = { ...page[i], action: { ...action, target: action.target - 1 } };
 			}
 		}
 		if (this.activePage >= this.pages.length) this.activePage = this.pages.length - 1;
@@ -222,7 +222,7 @@ class Keymap {
 					scriptsApproved?: boolean;
 				};
 				if (Array.isArray(parsed.pages) && parsed.pages.every((page) => page.length === NUM_KEYS)) {
-					this.pages = parsed.pages;
+					this.pages = migratePages(parsed.pages);
 					this.pageNames = Array.isArray(parsed.pageNames) ? parsed.pageNames : [];
 					this.profileName = parsed.profileName;
 					this.profileImage = parsed.profileImage;
@@ -236,9 +236,9 @@ class Keymap {
 			const legacy = JSON.parse(legacyRaw) as
 				KeyConfig[] | { keys: KeyConfig[]; profileName?: string; profileImage?: string };
 			if (Array.isArray(legacy)) {
-				if (legacy.length === NUM_KEYS) this.pages = [legacy];
+				if (legacy.length === NUM_KEYS) this.pages = migratePages([legacy]);
 			} else if (Array.isArray(legacy.keys) && legacy.keys.length === NUM_KEYS) {
-				this.pages = [legacy.keys];
+				this.pages = migratePages([legacy.keys]);
 				this.profileName = legacy.profileName;
 				this.profileImage = legacy.profileImage;
 			}

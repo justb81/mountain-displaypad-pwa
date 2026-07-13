@@ -4,7 +4,6 @@
 export type KeyAction =
 	| { type: 'none' }
 	| { type: 'open-url'; url: string }
-	| { type: 'copy-text'; text: string }
 	| {
 			/** Fire an HTTP request straight from the browser (toggle a light, kick a CI job, ...). */
 			type: 'webhook';
@@ -18,15 +17,49 @@ export type KeyAction =
 			noCors?: boolean;
 	  }
 	| {
-			/** Jump the whole pad to another page of 12 keys (Base Camp's "Create Folder"). */
-			type: 'open-folder';
-			/** Index into the keymap's page list. */
-			page: number;
-	  }
-	| {
-			/** Pop back to the page this key's folder was entered from (Base Camp's "Back"). */
-			type: 'back';
+			/**
+			 * Jump the whole pad to another page of 12 keys, or back to the page this
+			 * one was entered from — the browser-side mirror of Base Camp's "Create
+			 * Folder"/"Back" pair, combined into a single action.
+			 */
+			type: 'navigate';
+			/** A page index to jump to, or `'back'` to pop the previous page off the history. */
+			target: number | 'back';
 	  };
+
+/**
+ * Legacy action shapes we no longer model but may still find in stored/imported
+ * data: the pre-merge `open-folder`/`back` pair (now the single `navigate`
+ * action) and the removed `copy-text` action. {@link migrateAction} folds them
+ * into the current {@link KeyAction} union.
+ */
+type LegacyKeyAction =
+	{ type: 'open-folder'; page: number } | { type: 'back' } | { type: 'copy-text'; text?: string };
+
+/** Fold a possibly-legacy action into the current {@link KeyAction} union (a no-op for already-current actions). */
+export function migrateAction(action: KeyAction | LegacyKeyAction): KeyAction {
+	switch (action.type) {
+		case 'open-folder':
+			return { type: 'navigate', target: action.page };
+		case 'back':
+			return { type: 'navigate', target: 'back' };
+		case 'copy-text':
+			return { type: 'none' };
+		default:
+			return action;
+	}
+}
+
+/** Return `config` with any legacy action migrated, reusing the original object when nothing changed. */
+export function migrateKeyConfig(config: KeyConfig): KeyConfig {
+	const action = migrateAction(config.action as KeyAction | LegacyKeyAction);
+	return action === config.action ? config : { ...config, action };
+}
+
+/** Migrate every key's action across a list of pages (used when loading/importing persisted keymaps). */
+export function migratePages(pages: KeyConfig[][]): KeyConfig[][] {
+	return pages.map((page) => page.map(migrateKeyConfig));
+}
 
 /** Vertical placement of a {@link KeyTextStyle} label, matching Base Camp's `TextAlign`. */
 export type TextAlign = 'top' | 'center' | 'bottom';

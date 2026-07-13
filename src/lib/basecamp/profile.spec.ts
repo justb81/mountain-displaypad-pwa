@@ -20,12 +20,12 @@ describe('parsing the real Base Camp export', () => {
 		expect(result.pages[1]).toHaveLength(NUM_KEYS);
 	});
 
-	it('maps the "Create Folder" key to an open-folder action pointing at the sub-page', () => {
-		expect(result.pages[0][5].action).toEqual({ type: 'open-folder', page: 1 });
+	it('maps the "Create Folder" key to a navigate action pointing at the sub-page', () => {
+		expect(result.pages[0][5].action).toEqual({ type: 'navigate', target: 1 });
 	});
 
-	it('maps the sub-page\'s "Back" key to a back action', () => {
-		expect(result.pages[1][0].action).toEqual({ type: 'back' });
+	it('maps the sub-page\'s "Back" key to a navigate-back action', () => {
+		expect(result.pages[1][0].action).toEqual({ type: 'navigate', target: 'back' });
 	});
 
 	it('maps a "Run browser" key to open-url, reading the URL from CustomURL', () => {
@@ -115,9 +115,9 @@ describe('parsing multi-page / folder navigation', () => {
 		`);
 		const result = parseBasecampProfile(xml);
 		expect(result.pages).toHaveLength(2);
-		expect(result.pages[0][0].action).toEqual({ type: 'open-folder', page: 1 });
+		expect(result.pages[0][0].action).toEqual({ type: 'navigate', target: 1 });
 		expect(result.pages[0][0].label).toBe('Sub');
-		expect(result.pages[1][0].action).toEqual({ type: 'back' });
+		expect(result.pages[1][0].action).toEqual({ type: 'navigate', target: 'back' });
 	});
 
 	it('supports folders nested more than one level deep', () => {
@@ -142,9 +142,9 @@ describe('parsing multi-page / folder navigation', () => {
 		`);
 		const result = parseBasecampProfile(xml);
 		expect(result.pages).toHaveLength(3);
-		expect(result.pages[0][0].action).toEqual({ type: 'open-folder', page: 1 });
-		expect(result.pages[1][0].action).toEqual({ type: 'open-folder', page: 2 });
-		expect(result.pages[2][0].action).toEqual({ type: 'back' });
+		expect(result.pages[0][0].action).toEqual({ type: 'navigate', target: 1 });
+		expect(result.pages[1][0].action).toEqual({ type: 'navigate', target: 2 });
+		expect(result.pages[2][0].action).toEqual({ type: 'navigate', target: 'back' });
 	});
 
 	it('warns and skips a "Create Folder" key when its sub-page id is missing', () => {
@@ -355,16 +355,20 @@ describe('exporting and re-importing', () => {
 		});
 	});
 
-	it('round-trips a two-page profile linked by an open-folder key, with a back key on the sub-page', () => {
+	it('round-trips a two-page profile linked by a navigate key, with a back key on the sub-page', () => {
 		const root = keys({
 			0: {
 				label: 'Sub menu',
 				face: { type: 'color', color: '#000000' },
-				action: { type: 'open-folder', page: 1 }
+				action: { type: 'navigate', target: 1 }
 			}
 		});
 		const sub = keys({
-			0: { label: 'Back', face: { type: 'color', color: '#000000' }, action: { type: 'back' } },
+			0: {
+				label: 'Back',
+				face: { type: 'color', color: '#000000' },
+				action: { type: 'navigate', target: 'back' }
+			},
 			1: {
 				label: 'Docs',
 				face: { type: 'color', color: '#000000' },
@@ -377,25 +381,12 @@ describe('exporting and re-importing', () => {
 		const reimported = parseBasecampProfile(xml);
 		expect(reimported.warnings).toHaveLength(0);
 		expect(reimported.pages).toHaveLength(2);
-		expect(reimported.pages[0][0].action).toEqual({ type: 'open-folder', page: 1 });
-		expect(reimported.pages[1][0].action).toEqual({ type: 'back' });
+		expect(reimported.pages[0][0].action).toEqual({ type: 'navigate', target: 1 });
+		expect(reimported.pages[1][0].action).toEqual({ type: 'navigate', target: 'back' });
 		expect(reimported.pages[1][1].action).toEqual({
 			type: 'open-url',
 			url: 'https://example.com'
 		});
-	});
-
-	it('downgrades copy-text on export with a warning, since Base Camp has no such action', () => {
-		const source = keys({
-			0: {
-				label: 'Snippet',
-				face: { type: 'color', color: '#000000' },
-				action: { type: 'copy-text', text: 'hello' }
-			}
-		});
-		const { xml, warnings } = serializeBasecampProfile([source]);
-		expect(warnings.some((w) => w.includes('copy text'))).toBe(true);
-		expect(parseBasecampProfile(xml).pages[0][0].action).toEqual({ type: 'none' });
 	});
 
 	it('downgrades a webhook action on export with a warning, since Base Camp has no such action', () => {

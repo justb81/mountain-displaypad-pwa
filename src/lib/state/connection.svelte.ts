@@ -239,11 +239,11 @@ class Connection {
 	private runAction(index: number): void {
 		const { action } = keymap.keys[index];
 		if (action.type === 'open-url' && action.url) this.openUrl(index, action.url);
-		else if (action.type === 'copy-text' && action.text)
-			void navigator.clipboard?.writeText(action.text);
 		else if (action.type === 'webhook' && action.url) this.fireWebhook(index, action);
-		else if (action.type === 'open-folder') void this.goToPage(action.page);
-		else if (action.type === 'back') void this.goBack();
+		else if (action.type === 'navigate') {
+			if (action.target === 'back') void this.goBack();
+			else void this.goToPage(action.target);
+		}
 	}
 
 	/**
