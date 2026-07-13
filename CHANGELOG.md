@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.8.2...mountain-displaypad-v0.9.0) (2026-07-13)
+
+
+### Features
+
+* combine page nav actions, drop copy-text, rename Open URL ([#83](https://github.com/justb81/mountain-displaypad-pwa/issues/83), [#84](https://github.com/justb81/mountain-displaypad-pwa/issues/84), [#85](https://github.com/justb81/mountain-displaypad-pwa/issues/85)) ([#86](https://github.com/justb81/mountain-displaypad-pwa/issues/86)) ([eabdab1](https://github.com/justb81/mountain-displaypad-pwa/commit/eabdab1a18e2f722e5610f67920adcae6f412957))
+
+
+### Bug Fixes
+
+* non-destructive face switching + fully configurable second face ([#80](https://github.com/justb81/mountain-displaypad-pwa/issues/80), [#82](https://github.com/justb81/mountain-displaypad-pwa/issues/82)) ([#87](https://github.com/justb81/mountain-displaypad-pwa/issues/87)) ([bc5145f](https://github.com/justb81/mountain-displaypad-pwa/commit/bc5145fa9e3743f3ba19c1cb174ba35de7238e32))
+
 ## [0.8.2](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.8.1...mountain-displaypad-v0.8.2) (2026-07-13)
 
 
