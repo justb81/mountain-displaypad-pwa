@@ -9,7 +9,7 @@ import { browser } from '$app/environment';
 import { downscaleToDataUrl, pixelsToDataUrl } from '$lib/displaypad/raster.js';
 import { fetchTemplateFace } from '$lib/displaypad/template.js';
 import { secrets } from '$lib/state/secrets.svelte.js';
-import type { KeyConfig, KeyFace } from '$lib/types.js';
+import { migrateKeyConfig, type KeyConfig, type KeyFace } from '$lib/types.js';
 
 const STORAGE_KEY = 'displaypad.templates.v1';
 
@@ -93,7 +93,8 @@ class Templates {
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (!raw) return;
 			const parsed = JSON.parse(raw) as Template[];
-			if (Array.isArray(parsed)) this.items = parsed;
+			if (Array.isArray(parsed))
+				this.items = parsed.map((t) => ({ ...t, config: migrateKeyConfig(t.config) }));
 		} catch {
 			// Corrupt storage — fall back to an empty stash rather than crashing the app.
 		}

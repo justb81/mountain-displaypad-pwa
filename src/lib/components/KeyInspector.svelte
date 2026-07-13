@@ -167,20 +167,16 @@
 		const action: KeyAction =
 			type === 'open-url'
 				? { type, url: '' }
-				: type === 'copy-text'
-					? { type, text: '' }
-					: type === 'webhook'
-						? { type, method: 'POST', url: '' }
-						: type === 'open-folder'
-							? { type, page: keymap.addPage() }
-							: type === 'back'
-								? { type }
-								: { type: 'none' };
+				: type === 'webhook'
+					? { type, method: 'POST', url: '' }
+					: type === 'navigate'
+						? { type, target: 'back' }
+						: { type: 'none' };
 		keymap.update(index, { action });
 	}
 
-	function setFolderTarget(page: number) {
-		keymap.update(index, { action: { type: 'open-folder', page } });
+	function setNavigateTarget(target: number | 'back') {
+		keymap.update(index, { action: { type: 'navigate', target } });
 	}
 
 	/** Merge a patch into the current webhook action (no-op if the action isn't a webhook). */
@@ -341,11 +337,9 @@
 			onchange={(e) => setActionType(e.currentTarget.value as KeyAction['type'])}
 		>
 			<option value="none">Do nothing</option>
-			<option value="open-url">Open URL</option>
-			<option value="copy-text">Copy text</option>
+			<option value="open-url">Open URL in Browser</option>
 			<option value="webhook">Webhook (HTTP request)</option>
-			<option value="open-folder">Open folder (jump to another page)</option>
-			<option value="back">Back (return to the previous page)</option>
+			<option value="navigate">Page navigation</option>
 		</select>
 	</label>
 
@@ -398,29 +392,26 @@
 		{#if connection.popupBlockedErrors[index]}
 			<Hint tone="danger">{connection.popupBlockedErrors[index]}</Hint>
 		{/if}
-	{:else if config.action.type === 'copy-text'}
-		<input
-			class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
-			placeholder="Text to copy"
-			value={config.action.text}
-			oninput={(e) =>
-				keymap.update(index, { action: { type: 'copy-text', text: e.currentTarget.value } })}
-		/>
-	{:else if config.action.type === 'open-folder'}
+	{:else if config.action.type === 'navigate'}
 		<div class="flex items-center gap-2 text-body text-slate-300">
 			<select
 				class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
-				value={config.action.page}
-				onchange={(e) => setFolderTarget(Number(e.currentTarget.value))}
+				value={config.action.target === 'back' ? 'back' : String(config.action.target)}
+				onchange={(e) =>
+					setNavigateTarget(
+						e.currentTarget.value === 'back' ? 'back' : Number(e.currentTarget.value)
+					)}
 			>
+				<option value="back">← Back to the previous page</option>
 				{#each Array.from({ length: keymap.pageCount }, (_, i) => i) as pageIndex (pageIndex)}
-					<option value={pageIndex}>{keymap.pageName(pageIndex)}</option>
+					<option value={String(pageIndex)}>{keymap.pageName(pageIndex)}</option>
 				{/each}
 			</select>
-			<Button size="sm" onclick={() => setFolderTarget(keymap.addPage())}>+ New page</Button>
+			<Button size="sm" onclick={() => setNavigateTarget(keymap.addPage())}>+ New page</Button>
 		</div>
-	{:else if config.action.type === 'back'}
-		<Hint>Returns to whichever page this key's folder was entered from.</Hint>
+		{#if config.action.target === 'back'}
+			<Hint>Returns to whichever page this key was entered from.</Hint>
+		{/if}
 	{:else if config.action.type === 'webhook'}
 		<div class="flex flex-col gap-3 text-body text-slate-300">
 			<div class="flex gap-2">

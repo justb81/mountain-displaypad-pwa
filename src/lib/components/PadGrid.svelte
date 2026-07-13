@@ -30,7 +30,7 @@
 
 	function deletePage(page: number) {
 		const confirmed = confirm(
-			`Delete "${keymap.pageName(page)}"? Its keys will be removed and any folder links to it cleared.`
+			`Delete "${keymap.pageName(page)}"? Its keys will be removed and any page links to it cleared.`
 		);
 		if (confirmed) void connection.deletePage(page);
 	}

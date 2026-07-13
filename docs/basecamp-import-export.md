@@ -38,20 +38,19 @@ in text content. This is a stable, boring shape — not arbitrary hand-authored 
 
 ## 3. Mapping to our `KeyConfig`
 
-| Our field                            | From XML                                                                                     | Notes                                                                                                                               |
-| ------------------------------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `label`                              | `OptionalText.TextTitle`, falling back to `KeyName`                                          | Display-only in our UI (`PadKey.svelte`) — never painted onto the hardware image, so this is a safe, lossless-enough mapping.       |
-| `face: {type:'image', dataUrl}`      | `base64Image`, only when it's already a `data:image/...;base64,` URL                         | Directly compatible with `rasterize()` — no conversion needed.                                                                      |
-| `face: {type:'color'}` (fallback)    | —                                                                                            | Used whenever `base64Image` is empty or a non-data-URL path (see §4.3).                                                             |
-| `secondFace` (optional)              | `SecondBase64Image`, ordered by `IsFirstImageSelected`                                       | Toggle key's alternate face — see §4.4.                                                                                             |
-| `action: {type:'open-url', url}`     | `CustomURL`, only when `FunctionType === 'Run browser'`                                      | The URL is **not** in `FunctionValue` (that literally holds the string `"Run browser"`) — it's in the separate `CustomURL` element. |
-| `action: {type:'open-folder', page}` | `FunctionType === 'Create Folder'`, `page` resolved via `OptionalText.Id` → child `ParentId` | See §4.2.                                                                                                                           |
-| `action: {type:'back'}`              | `FunctionType === 'Back'`                                                                    | See §4.2.                                                                                                                           |
-| `action: {type:'none'}` (fallback)   | —                                                                                            | Every other `FunctionType` (see §4.1).                                                                                              |
+| Our field                                  | From XML                                                                                                | Notes                                                                                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `label`                                    | `OptionalText.TextTitle`, falling back to `KeyName`                                                     | Display-only in our UI (`PadKey.svelte`) — never painted onto the hardware image, so this is a safe, lossless-enough mapping.       |
+| `face: {type:'image', dataUrl}`            | `base64Image`, only when it's already a `data:image/...;base64,` URL                                    | Directly compatible with `rasterize()` — no conversion needed.                                                                      |
+| `face: {type:'color'}` (fallback)          | —                                                                                                       | Used whenever `base64Image` is empty or a non-data-URL path (see §4.3).                                                             |
+| `secondFace` (optional)                    | `SecondBase64Image`, ordered by `IsFirstImageSelected`                                                  | Toggle key's alternate face — see §4.4.                                                                                             |
+| `action: {type:'open-url', url}`           | `CustomURL`, only when `FunctionType === 'Run browser'`                                                 | The URL is **not** in `FunctionValue` (that literally holds the string `"Run browser"`) — it's in the separate `CustomURL` element. |
+| `action: {type:'navigate', target}`        | `FunctionType === 'Create Folder'`, `target` (a page) resolved via `OptionalText.Id` → child `ParentId` | See §4.2.                                                                                                                           |
+| `action: {type:'navigate', target:'back'}` | `FunctionType === 'Back'`                                                                               | See §4.2.                                                                                                                           |
+| `action: {type:'none'}` (fallback)         | —                                                                                                       | Every other `FunctionType` (see §4.1).                                                                                              |
 
-`copy-text` and `webhook` have no source in this format at all (Base Camp has neither a "copy to
-clipboard" nor an HTTP-request action) — they are browser-only, never populated from a Base Camp
-file, and are exported as unassigned with a warning.
+`webhook` has no source in this format at all (Base Camp has no HTTP-request action) — it is
+browser-only, never populated from a Base Camp file, and is exported as unassigned with a warning.
 
 ## 4. Gaps — what genuinely can't round-trip
 
@@ -69,14 +68,14 @@ attempted). **Plan:** import these as `action: {type:'none'}`, keep the key's la
 surface a plain-language warning listing what was dropped and why. Don't fail the import and
 don't fail silently.
 
-### 4.2 Multi-page / folder navigation
+### 4.2 Multi-page / page navigation
 
 Base Camp supports nested pages: pressing a `Create Folder` key jumps to a new set of 12 keys
 (linked via `ParentId` → the trigger key's own `OptionalText.Id`); a `Back` key pops up one
 level. Our keymap models this directly: `parseBasecampProfile` walks the `ParentId` tree
 starting from the top-level page (`ParentId === 0`) and returns `pages: KeyConfig[][]`, one
-12-key grid per page. A `Create Folder` key becomes `action: {type: 'open-folder', page}`
-pointing at its sub-page's index; a `Back` key becomes `action: {type: 'back'}`. Sub-pages no
+12-key grid per page. A `Create Folder` key becomes `action: {type: 'navigate', target}`
+pointing at its sub-page's index; a `Back` key becomes `action: {type: 'navigate', target: 'back'}`. Sub-pages no
 key links to (nobody's `Create Folder` points at their `ParentId`) are reported in `warnings`
 and dropped — there'd be no way to reach them on the pad anyway.
 
@@ -149,7 +148,7 @@ keymap and persist.
 - **Export**: `serializeBasecampProfile(keymap.pages)` → download via `Blob` + a temporary
   `<a download>` (standard browser pattern, no library).
 
-**`connection.svelte.ts`:** an `open-folder`/`back` key press calls `goToPage()`/`goBack()`,
+**`connection.svelte.ts`:** a `navigate` key press calls `goToPage()`/`goBack()`,
 which mutate `keymap`'s `activePage` (and navigation history) and repaint via the existing
 `applyAll()` if connected. `PadGrid.svelte` shows a breadcrumb (Home / Back / current page) so
 the same navigation works from the UI while editing, not just on physical key presses.
@@ -170,8 +169,8 @@ on the correct physical key.
 - **Phase 2 (optional, not yet done):** bundle a handful of Base Camp's own stock icons so the
   common `/images/default-profile/...` / `/images/DKD/...` paths resolve instead of falling
   back to a plain color.
-- **Phase 3 (shipped):** multi-page/folder navigation in our own data model (`pages:
-KeyConfig[][]` + `open-folder`/`back` actions), for full-fidelity round-trip of profiles that
+- **Phase 3 (shipped):** multi-page/page navigation in our own data model (`pages:
+KeyConfig[][]` + a `navigate` action), for full-fidelity round-trip of profiles that
   use `Create Folder`.
 
 ## 8. Open questions

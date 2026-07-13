@@ -50,15 +50,13 @@
 	const actionBadge = $derived.by((): { glyph: string; label: string } | undefined => {
 		switch (config.action.type) {
 			case 'open-url':
-				return { glyph: '↗', label: 'Opens a URL when pressed' };
-			case 'copy-text':
-				return { glyph: '⧉', label: 'Copies text when pressed' };
+				return { glyph: '↗', label: 'Opens a URL in the browser when pressed' };
 			case 'webhook':
 				return { glyph: '⚡', label: 'Fires a webhook when pressed' };
-			case 'open-folder':
-				return { glyph: '⊞', label: 'Opens another page when pressed' };
-			case 'back':
-				return { glyph: '↩', label: 'Returns to the previous page when pressed' };
+			case 'navigate':
+				return config.action.target === 'back'
+					? { glyph: '↩', label: 'Returns to the previous page when pressed' }
+					: { glyph: '⊞', label: 'Opens another page when pressed' };
 			default:
 				return undefined;
 		}

@@ -34,10 +34,10 @@ This configurator does all of that from a browser tab. There is **no companion a
 - 🖥️ **Live virtual keypad** — a pixel-accurate mirror of the physical pad that updates as you edit, whether or not hardware is connected.
 - 🎨 **Four kinds of key face** — a solid **colour**, an uploaded **image**, a **remote** image URL, or a data-driven **live template** (see [Key faces](#key-faces)).
 - 🔤 **Burned-on text labels** — add a caption to any colour/image/remote face with per-key colour, alignment, size, and bold/italic/underline.
-- ⚡ **Rich press actions** — open a URL, copy text, fire an HTTP **webhook**, or jump between pages (see [Actions](#actions)).
+- ⚡ **Rich press actions** — open a URL in the browser, fire an HTTP **webhook**, or jump between pages (see [Actions](#actions)).
 - 🔑 **Secrets** — store an API token once and reference it by name (`{{secret.KEY}}` in webhook headers/body, `ctx.secrets.KEY` in a transform) so credentials stay out of your saved and exported configs (see [Secrets](#secrets)).
 - 🔁 **Toggle keys** — give a key a second face and it flips between the two on every press (mic mute/unmute, scene A/B, …).
-- 🗂️ **Pages & folders** — organise keys across multiple pages; an _Open folder_ key jumps to another page and _Back_ returns, mirroring Base Camp's folders. Rename pages and navigate them from the breadcrumb tabs.
+- 🗂️ **Pages** — organise keys across multiple pages; a _Page navigation_ key jumps to another page or returns to the previous one, mirroring Base Camp's nested pages. Rename pages and navigate them from the breadcrumb tabs.
 - 🖱️ **Drag & drop + template stash** — drag one key onto another to swap (hold ⌘/Ctrl to copy), and save any key's full setup to a reusable stash you can drop onto other keys.
 - 📄 **Base Camp import/export** — read and write Mountain Base Camp `<Profile>` XML, so configs move both ways with the official software (see [Base Camp import/export](#base-camp-importexport)).
 - ✂️ **Remove background** — one click knocks the flat background colour out of an uploaded icon.
@@ -91,13 +91,11 @@ The transform runs in an **opaque-origin `sandbox="allow-scripts"` iframe** with
 
 Assign what a key does when it's pressed. Because everything happens in the page, actions are the ones a browser can safely perform:
 
-| Action          | Effect                                                                                                                                                                                       |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Open URL**    | Opens a link in a new tab.                                                                                                                                                                   |
-| **Copy text**   | Writes a string to the clipboard.                                                                                                                                                            |
-| **Webhook**     | Fires a `GET`/`POST` request with custom headers and a JSON body — toggle a smart light, kick a CI job, switch an OBS scene. A `no-cors` fire-and-forget mode covers trigger-only endpoints. |
-| **Open folder** | Jumps the whole pad to another page of 12 keys.                                                                                                                                              |
-| **Back**        | Returns to the page the folder was entered from.                                                                                                                                             |
+| Action                  | Effect                                                                                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Open URL in Browser** | Opens a link in a new tab.                                                                                                                                                                   |
+| **Webhook**             | Fires a `GET`/`POST` request with custom headers and a JSON body — toggle a smart light, kick a CI job, switch an OBS scene. A `no-cors` fire-and-forget mode covers trigger-only endpoints. |
+| **Page navigation**     | Jumps the whole pad to another page of 12 keys, or returns to the page this one was entered from.                                                                                            |
 
 <div align="center">
 <img src="docs/images/inspector-webhook.png" alt="The key inspector for a webhook action, showing method, URL, a JSON body, custom headers, and a fire-and-forget no-cors option." width="380" />
@@ -124,7 +122,7 @@ The reference is what gets stored and exported — never the value. Secrets are 
 
 ## Base Camp import/export
 
-The configurator reads and writes Mountain Base Camp's `<Profile>` XML, so you can move configurations between this app and the official software in both directions. Nested folder pages round-trip as pages, and burned-on text labels survive the trip.
+The configurator reads and writes Mountain Base Camp's `<Profile>` XML, so you can move configurations between this app and the official software in both directions. Nested pages round-trip in both directions (Base Camp's folders become our pages), and burned-on text labels survive the trip.
 
 Base Camp's format is shared across Mountain's whole product line and includes OS-level actions a browser sandbox categorically can't perform (launching a local `.exe`, locking the PC, global hotkeys, …). Rather than fail on those, an import always produces a full 12-key result and collects a list of **warnings** describing exactly what couldn't be carried over. See [`docs/basecamp-import-export.md`](docs/basecamp-import-export.md) for the full mapping.
 
