@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.8.1...mountain-displaypad-v0.8.2) (2026-07-13)
+
+
+### Bug Fixes
+
+* use pwa-icon.svg as the browser favicon instead of the unused favicon.svg ([#78](https://github.com/justb81/mountain-displaypad-pwa/issues/78)) ([acd099c](https://github.com/justb81/mountain-displaypad-pwa/commit/acd099c175fd03967b4fc101874f85a3a78a3a3c))
+
 ## [0.8.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.8.0...mountain-displaypad-v0.8.1) (2026-07-13)
 
 
