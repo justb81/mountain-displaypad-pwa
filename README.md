@@ -6,7 +6,7 @@
 
 A client-only [PWA](https://web.dev/explore/progressive-web-apps) that talks to the hardware over [WebHID](https://developer.mozilla.org/en-US/docs/Web/API/WebHID_API): paint each of the 12 keys, choose what it does when pressed, and push it to the pad live.
 
-[**▶ Open the app**](https://justb81.github.io/mountain-displaypad-pwa/) · [Features](#features) · [Key faces](#key-faces) · [Actions](#actions) · [Base Camp import/export](#base-camp-importexport) · [Getting started](#getting-started)
+[**▶ Open the app**](https://justb81.github.io/mountain-displaypad-pwa/) · [Features](#features) · [Key faces](#key-faces) · [Actions](#actions) · [Secrets](#secrets) · [Base Camp import/export](#base-camp-importexport) · [Getting started](#getting-started)
 
 [![CI](https://github.com/justb81/mountain-displaypad-pwa/actions/workflows/ci.yml/badge.svg)](https://github.com/justb81/mountain-displaypad-pwa/actions/workflows/ci.yml)
 &nbsp;·&nbsp; SvelteKit · Svelte 5 · Tailwind 4 · WebHID · installable & offline
@@ -35,6 +35,7 @@ This configurator does all of that from a browser tab. There is **no companion a
 - 🎨 **Four kinds of key face** — a solid **colour**, an uploaded **image**, a **remote** image URL, or a data-driven **live template** (see [Key faces](#key-faces)).
 - 🔤 **Burned-on text labels** — add a caption to any colour/image/remote face with per-key colour, alignment, size, and bold/italic/underline.
 - ⚡ **Rich press actions** — open a URL, copy text, fire an HTTP **webhook**, or jump between pages (see [Actions](#actions)).
+- 🔑 **Secrets** — store an API token once and reference it by name (`{{secret.KEY}}` in webhook headers/body, `ctx.secrets.KEY` in a transform) so credentials stay out of your saved and exported configs (see [Secrets](#secrets)).
 - 🔁 **Toggle keys** — give a key a second face and it flips between the two on every press (mic mute/unmute, scene A/B, …).
 - 🗂️ **Pages & folders** — organise keys across multiple pages; an _Open folder_ key jumps to another page and _Back_ returns, mirroring Base Camp's folders. Rename pages and navigate them from the breadcrumb tabs.
 - 🖱️ **Drag & drop + template stash** — drag one key onto another to swap (hold ⌘/Ctrl to copy), and save any key's full setup to a reusable stash you can drop onto other keys.
@@ -84,7 +85,7 @@ const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 return { time: `${p(d.getHours())}:${p(d.getMinutes())}`, day: days[d.getDay()] };
 ```
 
-The transform runs in an **opaque-origin `sandbox="allow-scripts"` iframe** with no access to the app, `localStorage`, or your cookies — only `fetch` and `Date`. A transform imported from someone else's profile never runs until you explicitly approve it.
+The transform runs in an **opaque-origin `sandbox="allow-scripts"` iframe** with no access to the app, `localStorage`, or your cookies — only `fetch`, `Date`, and a `ctx` argument. Stored [secrets](#secrets) arrive on `ctx.secrets` (e.g. `ctx.secrets.API_TOKEN`), so a transform can authenticate a `fetch` without the token living in the template. A transform imported from someone else's profile never runs until you explicitly approve it.
 
 ## Actions
 
@@ -102,7 +103,24 @@ Assign what a key does when it's pressed. Because everything happens in the page
 <img src="docs/images/inspector-webhook.png" alt="The key inspector for a webhook action, showing method, URL, a JSON body, custom headers, and a fire-and-forget no-cors option." width="380" />
 </div>
 
-Requests go **straight from your browser**, so a cross-origin endpoint has to send permissive CORS headers (or you enable `no-cors`, which makes the response unreadable). Each key is rate-limited so a bouncing switch can't flood an endpoint.
+Requests go **straight from your browser**, so a cross-origin endpoint has to send permissive CORS headers (or you enable `no-cors`, which makes the response unreadable). Each key is rate-limited so a bouncing switch can't flood an endpoint. Put a token in the header or body with a [secret](#secrets) reference — `Authorization: Bearer {{secret.TOKEN}}` — instead of typing it in plain.
+
+## Secrets
+
+Webhooks and live-template transforms often need a credential — an API token, a bearer key. Rather than typing it into the header, body, or transform (where it would then live in your saved keymap and in any Base Camp export or stashed template), store it **once** as a named secret and reference it by name.
+
+Open **Secrets** from the top-right menu (or the **🔑 Secrets** button above any compatible field), then add a `KEY` and its value:
+
+| Where              | How to reference it                                             |
+| ------------------ | --------------------------------------------------------------- |
+| Webhook headers    | `Authorization: Bearer {{secret.TOKEN}}`                        |
+| Webhook JSON body  | `{ "apiKey": "{{secret.TOKEN}}" }`                              |
+| Template transform | `fetch(url, { headers: { Authorization: ctx.secrets.TOKEN } })` |
+
+The reference is what gets stored and exported — never the value. Secrets are resolved only at the moment a webhook fires or a transform runs.
+
+> [!NOTE]
+> Secrets live in this browser's `localStorage` in plain text, under a key separate from your keymap. They're device-local and never leave your machine on their own, and they're left out of profile exports and saved templates — but this is scoping, not encryption. Anyone with access to the browser can read them.
 
 ## Base Camp import/export
 
@@ -140,7 +158,7 @@ The code is layered low-level → UI, so the tricky wire format can be tested wi
 
 1. **Protocol (pure)** — `src/lib/displaypad/protocol.ts`, `image.ts`. The reverse-engineered USB HID wire format: BGR pixel encoding, the init/image control frames, and key-press decoding. No browser APIs, fully unit-tested.
 2. **Device transport (browser-only)** — `device.ts`, `raster.ts`, `liveface.ts`, `template.ts`, `sandbox.ts`. Opens the composite HID device, drives the pixel-transfer state machine, rasterises faces to 102×102 RGBA, and runs template transforms in a sandboxed iframe.
-3. **State (Svelte 5 runes)** — `src/lib/state/*.svelte.ts`. Reactive singletons for the `keymap` (pages of keys, persisted), the `connection` (the live pad and its timers/actions), and template previews.
+3. **State (Svelte 5 runes)** — `src/lib/state/*.svelte.ts`. Reactive singletons for the `keymap` (pages of keys, persisted), the `connection` (the live pad and its timers/actions), `secrets` (named credentials referenced by webhooks and transforms), and template previews.
 4. **UI** — `src/routes/+page.svelte` + `src/lib/components/*`. Presentational Svelte components that read and mutate the stores.
 
 The whole thing prerenders to a static shell (`ssr = false`, `prerender = true`) and hydrates into a client-only app, because WebHID has no server-side equivalent. Built with **SvelteKit + Svelte 5** (runes), **Tailwind CSS 4**, TypeScript, and Vitest; the template editor uses CodeJar + Prism, all bundled with no CDN.

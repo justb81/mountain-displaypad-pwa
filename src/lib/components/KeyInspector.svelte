@@ -22,9 +22,11 @@
 		index: number;
 		/** Non-drag fallback for reordering: moves the config and follows selection to the new slot. */
 		onmove: (index: number) => void;
+		/** Open the app-wide Secrets dialog (shared with the top menu). */
+		onopensecrets: () => void;
 	}
 
-	let { index, onmove }: Props = $props();
+	let { index, onmove, onopensecrets }: Props = $props();
 
 	const config = $derived(keymap.keys[index]);
 	const canApply = $derived(connection.status === 'connected');
@@ -456,6 +458,12 @@
 	});
 </script>
 
+{#snippet secretsButton()}
+	<Button size="sm" variant="ghost" onclick={onopensecrets} title="Manage secrets">
+		🔑 Secrets
+	</Button>
+{/snippet}
+
 <section class="flex flex-col gap-5 rounded-panel bg-slate-800 p-5">
 	<header class="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
 		<h2 class="text-h1 font-semibold text-white">Key {index + 1}</h2>
@@ -622,8 +630,11 @@
 					<span class="text-label font-medium text-slate-200">Template (HTML + Mustache)</span>
 					<CodeEditor value={templateFace.template} language="handlebars" onChange={setTemplate} />
 				</label>
-				<label class="flex flex-col gap-1">
-					<span class="text-label font-medium text-slate-200">Transform (optional)</span>
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center justify-between gap-2">
+						<span class="text-label font-medium text-slate-200">Transform (optional)</span>
+						{@render secretsButton()}
+					</div>
 					<CodeEditor
 						value={templateFace.transform ?? ''}
 						language="javascript"
@@ -631,9 +642,10 @@
 					/>
 					<Hint>
 						Optional sandboxed async JS — has <code>fetch</code>, <code>Date</code>, and a
-						<code>ctx</code> argument; must return a plain object.
+						<code>ctx</code> argument (read stored secrets via <code>ctx.secrets.KEY</code>); must
+						return a plain object.
 					</Hint>
-				</label>
+				</div>
 				<div class="flex flex-wrap items-center gap-4 text-label text-slate-400">
 					<label class="flex items-center gap-1.5">
 						Refresh every
@@ -1032,8 +1044,11 @@
 			</div>
 
 			{#if config.action.method === 'POST'}
-				<label class="flex flex-col gap-1">
-					<span class="text-label font-medium text-slate-200">JSON body</span>
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center justify-between gap-2">
+						<span class="text-label font-medium text-slate-200">JSON body</span>
+						{@render secretsButton()}
+					</div>
 					<textarea
 						rows="4"
 						placeholder={'{\n  "on": true\n}'}
@@ -1041,13 +1056,21 @@
 						oninput={(e) => updateWebhook({ body: e.currentTarget.value })}
 						class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
 					></textarea>
-				</label>
-				{#if bodyError}<Hint tone="danger">Invalid JSON: {bodyError}</Hint>{/if}
+					<Hint>Insert a stored secret with <code>{'{{secret.KEY}}'}</code>.</Hint>
+					{#if bodyError}<Hint tone="danger">Invalid JSON: {bodyError}</Hint>{/if}
+				</div>
 			{/if}
 
-			<label class="flex flex-col gap-1">
-				<span class="text-label font-medium text-slate-200">Custom headers</span>
-				<Hint>One <code>Name: Value</code> per line.</Hint>
+			<div class="flex flex-col gap-1">
+				<div class="flex items-center justify-between gap-2">
+					<span class="text-label font-medium text-slate-200">Custom headers</span>
+					{@render secretsButton()}
+				</div>
+				<Hint>
+					One <code>Name: Value</code> per line. Insert a stored secret with
+					<code>{'{{secret.KEY}}'}</code> (e.g.
+					<code>Authorization: Bearer {'{{secret.TOKEN}}'}</code>).
+				</Hint>
 				<textarea
 					rows="2"
 					placeholder="Authorization: Bearer …"
@@ -1055,7 +1078,7 @@
 					oninput={(e) => setHeaders(e.currentTarget.value)}
 					class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
 				></textarea>
-			</label>
+			</div>
 
 			<label class="flex items-center gap-2">
 				<input
