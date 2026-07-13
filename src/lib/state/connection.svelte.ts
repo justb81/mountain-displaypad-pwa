@@ -191,7 +191,10 @@ class Connection {
 		this.clearLiveTimer(index);
 		if (this.status !== 'connected') return;
 
-		const { face } = keymap.keys[index];
+		// Time the currently-shown face — a toggle key flipped to a live second face
+		// refreshes on its own policy, just like a primary live face would.
+		const config = keymap.keys[index];
+		const face = this.toggled[index] && config.secondFace ? config.secondFace : config.face;
 		if (!isLiveFace(face) || !face.refreshMinutes) return;
 
 		const minutes = Math.max(MIN_REFRESH_MINUTES, face.refreshMinutes);
@@ -224,6 +227,8 @@ class Connection {
 			if (config.secondFace) {
 				this.toggled[key] = !this.toggled[key];
 				void this.applyKey(key);
+				// The now-shown face may have a different refresh policy than the other one.
+				this.syncLiveTimer(key);
 			} else if (isLiveFace(config.face) && config.face.refreshOnPress) {
 				void this.applyKey(key);
 			}
