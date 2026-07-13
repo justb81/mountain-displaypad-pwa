@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+	BRIGHTNESS_LEVELS,
 	IMAGE_BYTES,
 	PACKET_SIZE,
 	REPORT_ID,
+	assertValidBrightness,
 	assertValidKey,
+	brightnessMessage,
 	buildReport,
 	decodeKeyStates,
 	imageAnnounceMessage,
@@ -71,6 +74,23 @@ describe('image announce message', () => {
 	it('rejects out-of-range keys', () => {
 		expect(() => assertValidKey(12)).toThrow(RangeError);
 		expect(() => imageAnnounceMessage(-1)).toThrow(RangeError);
+	});
+});
+
+describe('brightness message', () => {
+	it('encodes each supported level at byte 5, with the command bytes fixed', () => {
+		for (const percent of BRIGHTNESS_LEVELS) {
+			const msg = brightnessMessage(percent);
+			expect(msg).toHaveLength(65);
+			expect(msg[1]).toBe(0x12);
+			expect(msg[2]).toBe(0x03);
+			expect(msg[5]).toBe(percent);
+		}
+	});
+
+	it('rejects levels the firmware does not support', () => {
+		expect(() => assertValidBrightness(10)).toThrow(RangeError);
+		expect(() => brightnessMessage(10 as never)).toThrow(RangeError);
 	});
 });
 

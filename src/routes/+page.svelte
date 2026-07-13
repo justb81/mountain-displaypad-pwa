@@ -7,10 +7,12 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import OverflowMenu from '$lib/components/ui/OverflowMenu.svelte';
+	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { debug } from '$lib/state/debug.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { toast } from '$lib/state/toast.svelte.js';
+	import { BRIGHTNESS_LEVELS, type BrightnessLevel } from '$lib/displaypad/protocol.js';
 	import pkg from '../../package.json';
 
 	let selected = $state(0);
@@ -91,6 +93,15 @@
 					<span>Apply all on (re)connect</span>
 					<input type="checkbox" bind:checked={connection.autoApplyOnConnect} />
 				</label>
+				<div class="flex flex-col gap-1.5 rounded-control px-2 py-1.5">
+					<span>Brightness</span>
+					<SegmentedControl
+						name="brightness"
+						value={String(connection.brightness)}
+						onchange={(v) => void connection.setBrightness(Number(v) as BrightnessLevel)}
+						options={BRIGHTNESS_LEVELS.map((level) => ({ value: String(level), label: `${level}%` }))}
+					/>
+				</div>
 				<div class="my-1 border-t border-line"></div>
 				<a
 					href="https://github.com/justb81/mountain-displaypad-pwa#readme"
