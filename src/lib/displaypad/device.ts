@@ -24,10 +24,12 @@ import {
 	REPORT_ID,
 	VENDOR_ID,
 	assertValidKey,
+	brightnessMessage,
 	buildReport,
 	decodeKeyStates,
 	imageAnnounceMessage,
-	isKeyStateReport
+	isKeyStateReport,
+	type BrightnessLevel
 } from './protocol.js';
 import { encodeImage, encodeSolidColor } from './image.js';
 import { debug } from '$lib/state/debug.svelte.js';
@@ -166,6 +168,12 @@ export class DisplayPad extends EventTarget {
 	setKeyImage(keyIndex: number, rgba: Uint8Array | Uint8ClampedArray): void {
 		assertValidKey(keyIndex);
 		this.enqueue(keyIndex, encodeImage(rgba));
+	}
+
+	/** Set the backlight brightness. Fire-and-forget — the firmware sends no ack. */
+	async setBrightness(percent: BrightnessLevel): Promise<void> {
+		debugLog('setBrightness', { percent });
+		await this.sendMessage(this.control, brightnessMessage(percent));
 	}
 
 	/** Current pressed/released snapshot, indexed by key. */

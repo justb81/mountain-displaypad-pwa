@@ -12,11 +12,13 @@ import { hexToRgb } from '$lib/displaypad/image.js';
 import { fetchRemoteFace } from '$lib/displaypad/liveface.js';
 import { rasterize, rasterizeColor } from '$lib/displaypad/raster.js';
 import { fetchTemplateFace } from '$lib/displaypad/template.js';
-import { NUM_KEYS } from '$lib/displaypad/protocol.js';
+import { BRIGHTNESS_LEVELS, NUM_KEYS, type BrightnessLevel } from '$lib/displaypad/protocol.js';
 import { isLiveFace, type ConnectionStatus, type KeyAction } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
 
 const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
+const BRIGHTNESS_STORAGE_KEY = 'displaypad.brightness.v1';
+const DEFAULT_BRIGHTNESS: BrightnessLevel = 100;
 
 /** Refuse to poll a remote face more often than this, however small `refreshMinutes` is set. */
 const MIN_REFRESH_MINUTES = 1;
@@ -41,6 +43,7 @@ class Connection {
 	toggled = $state<boolean[]>(Array(NUM_KEYS).fill(false));
 
 	#autoApplyOnConnect = $state(false);
+	#brightness = $state<BrightnessLevel>(DEFAULT_BRIGHTNESS);
 
 	private pad: DisplayPad | null = null;
 	private liveTimers = new Map<number, ReturnType<typeof setInterval>>();
@@ -50,6 +53,13 @@ class Connection {
 	constructor() {
 		if (!browser) return;
 		if (localStorage.getItem(AUTO_APPLY_STORAGE_KEY) === 'true') this.#autoApplyOnConnect = true;
+		const storedBrightnessRaw = localStorage.getItem(BRIGHTNESS_STORAGE_KEY);
+		if (storedBrightnessRaw !== null) {
+			const storedBrightness = Number(storedBrightnessRaw);
+			if ((BRIGHTNESS_LEVELS as readonly number[]).includes(storedBrightness)) {
+				this.#brightness = storedBrightness as BrightnessLevel;
+			}
+		}
 		if (!DisplayPad.isSupported()) {
 			this.status = 'unsupported';
 			return;
@@ -65,6 +75,23 @@ class Connection {
 	set autoApplyOnConnect(value: boolean) {
 		this.#autoApplyOnConnect = value;
 		if (browser) localStorage.setItem(AUTO_APPLY_STORAGE_KEY, String(value));
+	}
+
+	/** Last brightness level applied (or chosen while disconnected), persisted across reloads. */
+	get brightness(): BrightnessLevel {
+		return this.#brightness;
+	}
+
+	/** Persist the chosen brightness and push it to the pad if one is connected. */
+	async setBrightness(percent: BrightnessLevel): Promise<void> {
+		this.#brightness = percent;
+		if (browser) localStorage.setItem(BRIGHTNESS_STORAGE_KEY, String(percent));
+		if (!this.pad) return;
+		try {
+			await this.pad.setBrightness(percent);
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : String(err);
+		}
 	}
 
 	/** Prompt for a pad and open it. Key faces are only pushed on explicit apply. */

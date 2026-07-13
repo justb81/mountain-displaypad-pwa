@@ -16,6 +16,12 @@ export const VENDOR_ID = 0x3282;
 /** Known USB HID product ids. */
 export const PRODUCT_IDS = [0x0009] as const;
 
+/** Valid backlight brightness levels accepted by the firmware (percent). */
+export const BRIGHTNESS_LEVELS = [0, 25, 50, 75, 100] as const;
+
+/** One of the discrete brightness levels the firmware accepts. */
+export type BrightnessLevel = (typeof BRIGHTNESS_LEVELS)[number];
+
 /** Total number of keys. */
 export const NUM_KEYS = 12;
 
@@ -134,6 +140,29 @@ export function imageAnnounceMessage(keyIndex: number): Uint8Array {
 	const msg = IMAGE_MESSAGE.slice();
 	msg[5] = keyIndex;
 	return msg;
+}
+
+/**
+ * Encode a brightness-set command for the control interface. Fire-and-forget —
+ * unlike {@link INIT_MESSAGE}/{@link IMAGE_MESSAGE}, the firmware sends no ack
+ * for this command.
+ */
+export function brightnessMessage(percent: BrightnessLevel): Uint8Array {
+	assertValidBrightness(percent);
+	const msg = new Uint8Array(65);
+	msg[1] = 0x12;
+	msg[2] = 0x03;
+	msg[5] = percent;
+	return msg;
+}
+
+/** Throws unless `percent` is one of {@link BRIGHTNESS_LEVELS}. */
+export function assertValidBrightness(percent: number): asserts percent is BrightnessLevel {
+	if (!(BRIGHTNESS_LEVELS as readonly number[]).includes(percent)) {
+		throw new RangeError(
+			`Expected a brightness level of ${BRIGHTNESS_LEVELS.join('|')}, got ${percent}`
+		);
+	}
 }
 
 /** Grid coordinate (row, column) for a key index. */
