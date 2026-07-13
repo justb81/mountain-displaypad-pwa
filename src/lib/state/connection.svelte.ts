@@ -15,6 +15,7 @@ import { fetchTemplateFace } from '$lib/displaypad/template.js';
 import { BRIGHTNESS_LEVELS, NUM_KEYS, type BrightnessLevel } from '$lib/displaypad/protocol.js';
 import { isLiveFace, type ConnectionStatus, type KeyAction } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
+import { secrets } from './secrets.svelte.js';
 
 const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
 const BRIGHTNESS_STORAGE_KEY = 'displaypad.brightness.v1';
@@ -167,7 +168,7 @@ class Connection {
 			const pixels =
 				face.type === 'remote'
 					? await fetchRemoteFace(face.url, undefined, face.text)
-					: await fetchTemplateFace(face);
+					: await fetchTemplateFace(face, undefined, secrets.values);
 			this.pad.setKeyImage(index, pixels);
 			this.liveFaceErrors[index] = null;
 		} catch (err) {
@@ -304,12 +305,17 @@ class Connection {
 		if (last !== undefined && now - last < WEBHOOK_MIN_INTERVAL_MS) return;
 		this.lastWebhookAt.set(index, now);
 
-		const headers: Record<string, string> = { ...action.headers };
+		// Resolve `{{secret.KEY}}` references so credentials live in the secrets store,
+		// not in the (persisted/exported) action config. Header names are left literal.
+		const headers: Record<string, string> = {};
+		for (const [name, value] of Object.entries(action.headers ?? {})) {
+			headers[name] = secrets.apply(value);
+		}
 		const init: RequestInit = { method: action.method, headers };
 		if (action.method === 'POST' && action.body) {
 			const hasContentType = Object.keys(headers).some((h) => h.toLowerCase() === 'content-type');
 			if (!hasContentType) headers['Content-Type'] = 'application/json';
-			init.body = action.body;
+			init.body = secrets.apply(action.body);
 		}
 		if (action.noCors) init.mode = 'no-cors';
 

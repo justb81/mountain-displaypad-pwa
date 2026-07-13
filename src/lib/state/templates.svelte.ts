@@ -8,6 +8,7 @@
 import { browser } from '$app/environment';
 import { downscaleToDataUrl, pixelsToDataUrl } from '$lib/displaypad/raster.js';
 import { fetchTemplateFace } from '$lib/displaypad/template.js';
+import { secrets } from '$lib/state/secrets.svelte.js';
 import type { KeyConfig, KeyFace } from '$lib/types.js';
 
 const STORAGE_KEY = 'displaypad.templates.v1';
@@ -38,7 +39,7 @@ async function renderPreview(face: KeyFace, scriptsApproved: boolean): Promise<s
 	if (face.type !== 'template' || !browser) return undefined;
 	if (face.transform && !scriptsApproved) return undefined;
 	try {
-		return pixelsToDataUrl(await fetchTemplateFace(face));
+		return pixelsToDataUrl(await fetchTemplateFace(face, undefined, secrets.values));
 	} catch {
 		return undefined;
 	}

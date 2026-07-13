@@ -3,6 +3,7 @@
 	import KeyInspector from '$lib/components/KeyInspector.svelte';
 	import PadGrid from '$lib/components/PadGrid.svelte';
 	import ProfileTools from '$lib/components/ProfileTools.svelte';
+	import SecretsDialog from '$lib/components/SecretsDialog.svelte';
 	import TemplateStash from '$lib/components/TemplateStash.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
@@ -17,6 +18,7 @@
 
 	let selected = $state(0);
 	let confirmResetAll = $state(false);
+	let secretsOpen = $state(false);
 
 	/** Reset the selected key on Delete, unless the keypress belongs to a text field/editor. */
 	function onWindowKeydown(event: KeyboardEvent) {
@@ -58,6 +60,8 @@
 	oncancel={() => (confirmResetAll = false)}
 />
 
+<SecretsDialog open={secretsOpen} onclose={() => (secretsOpen = false)} />
+
 <div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-5 p-4 text-slate-100 sm:p-6">
 	<header class="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
 		<div class="flex items-center gap-3">
@@ -93,6 +97,14 @@
 					<span>Apply all on (re)connect</span>
 					<input type="checkbox" bind:checked={connection.autoApplyOnConnect} />
 				</label>
+				<button
+					type="button"
+					onclick={() => (secretsOpen = true)}
+					class="flex items-center justify-between gap-3 rounded-control px-2 py-1.5 text-left hover:bg-slate-800"
+				>
+					<span>Secrets…</span>
+					<span aria-hidden="true">🔑</span>
+				</button>
 				<div class="flex flex-col gap-1.5 rounded-control px-2 py-1.5">
 					<span>Brightness</span>
 					<SegmentedControl
@@ -144,7 +156,11 @@
 			<TemplateStash {selected} />
 		</div>
 
-		<KeyInspector index={selected} onmove={(i) => (selected = i)} />
+		<KeyInspector
+			index={selected}
+			onmove={(i) => (selected = i)}
+			onopensecrets={() => (secretsOpen = true)}
+		/>
 	</main>
 
 	<footer class="mt-auto border-t border-line pt-4 text-caption text-slate-500">
