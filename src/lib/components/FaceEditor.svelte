@@ -402,7 +402,8 @@
 							min="1"
 							value={textStyle.fontSize ?? ''}
 							placeholder="14"
-							oninput={(e) => updateFaceText({ fontSize: Number(e.currentTarget.value) || undefined })}
+							oninput={(e) =>
+								updateFaceText({ fontSize: Number(e.currentTarget.value) || undefined })}
 							class="w-14 rounded-control border border-line bg-slate-900 px-1.5 py-1 text-white"
 						/>
 						px
