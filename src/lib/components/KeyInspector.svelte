@@ -490,7 +490,7 @@
 	{#if savingTemplate}
 		<div class="flex items-center gap-2">
 			<input
-				class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+				class="min-w-0 flex-1 overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 				placeholder="Template name"
 				value={templateName}
 				oninput={(e) => (templateName = e.currentTarget.value)}
@@ -506,7 +506,7 @@
 	<label class="flex flex-col gap-1 text-label text-slate-300">
 		<span class="font-medium text-slate-200">Label</span>
 		<input
-			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-body text-white"
+			class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-body text-white"
 			value={config.label}
 			oninput={(e) => keymap.update(index, { label: e.currentTarget.value })}
 		/>
@@ -583,7 +583,7 @@
 					placeholder="https://example.com/face.png"
 					value={remoteFace?.url ?? ''}
 					oninput={(e) => setRemoteUrl(e.currentTarget.value)}
-					class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+					class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 				/>
 			</label>
 			{#if remoteFace}
@@ -694,7 +694,7 @@
 			{#if config.face.text}
 				<label class="flex items-center gap-2">
 					<input
-						class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+						class="min-w-0 flex-1 overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 						value={config.face.text.text}
 						oninput={(e) => updateFaceText({ text: e.currentTarget.value })}
 					/>
@@ -846,7 +846,7 @@
 			{#if config.secondFace.type !== 'template' && config.secondFace.text}
 				<label class="flex items-center gap-2">
 					<input
-						class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+						class="min-w-0 flex-1 overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 						value={config.secondFace.text.text}
 						oninput={(e) => updateSecondFaceText({ text: e.currentTarget.value })}
 					/>
@@ -936,7 +936,7 @@
 	{#if config.action.type === 'open-url'}
 		<div class="flex items-center gap-2">
 			<input
-				class="min-w-0 flex-1 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+				class="min-w-0 flex-1 overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 				placeholder="https://example.com"
 				value={config.action.url}
 				oninput={(e) => setOpenUrl(e.currentTarget.value)}
@@ -984,7 +984,7 @@
 		{/if}
 	{:else if config.action.type === 'copy-text'}
 		<input
-			class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+			class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 			placeholder="Text to copy"
 			value={config.action.text}
 			oninput={(e) =>
@@ -1026,7 +1026,7 @@
 						placeholder="https://example.com/webhook"
 						value={config.action.url}
 						oninput={(e) => updateWebhook({ url: e.currentTarget.value })}
-						class="min-w-0 rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
+						class="min-w-0 overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
 					/>
 				</label>
 			</div>
@@ -1039,7 +1039,7 @@
 						placeholder={'{\n  "on": true\n}'}
 						value={config.action.body ?? ''}
 						oninput={(e) => updateWebhook({ body: e.currentTarget.value })}
-						class="rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
+						class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
 					></textarea>
 				</label>
 				{#if bodyError}<Hint tone="danger">Invalid JSON: {bodyError}</Hint>{/if}
@@ -1053,7 +1053,7 @@
 					placeholder="Authorization: Bearer …"
 					value={headersText}
 					oninput={(e) => setHeaders(e.currentTarget.value)}
-					class="rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
+					class="overflow-x-auto rounded-control border border-line bg-slate-900 px-2 py-1.5 font-mono text-white"
 				></textarea>
 			</label>
 

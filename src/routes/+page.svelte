@@ -58,7 +58,7 @@
 	oncancel={() => (confirmResetAll = false)}
 />
 
-<div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-5 p-4 text-slate-100 sm:p-6">
+<div class="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-5 p-4 text-slate-100 sm:p-6">
 	<header class="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
 		<div class="flex items-center gap-3">
 			<span
