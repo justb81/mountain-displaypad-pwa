@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.7.0...mountain-displaypad-v0.8.0) (2026-07-13)
+
+
+### Features
+
+* named secrets for webhooks and live-template transforms ([#66](https://github.com/justb81/mountain-displaypad-pwa/issues/66)) ([#69](https://github.com/justb81/mountain-displaypad-pwa/issues/69)) ([7dc4988](https://github.com/justb81/mountain-displaypad-pwa/commit/7dc49884f22ddbe746d0f44490876ae13c2f147e))
+* set display brightness via HID ([#67](https://github.com/justb81/mountain-displaypad-pwa/issues/67)) ([b804bb7](https://github.com/justb81/mountain-displaypad-pwa/commit/b804bb7d00d848837e71e5e76c3c79c63fb6221a))
+
 ## [0.7.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.6.0...mountain-displaypad-v0.7.0) (2026-07-13)
 
 
