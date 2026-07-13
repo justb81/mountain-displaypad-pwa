@@ -31,20 +31,34 @@ class TemplatePreview {
 	/** Bumped per key on every render so a slow, superseded render can't clobber a newer one. */
 	private tokens: number[] = Array(NUM_KEYS).fill(0);
 
-	/** Debounce a re-render of key `index` for `face` — call whenever a key's face (or script approval) may have changed. */
-	scheduleRender(index: number, face: KeyFace, scriptsApproved: boolean): void {
+	/**
+	 * Debounce a re-render of key `index` for `face` — call whenever a key's face,
+	 * script approval, or secret values may have changed. `secretValues` is exposed
+	 * to the transform as `ctx.secrets`, mirroring `connection.applyKey`.
+	 */
+	scheduleRender(
+		index: number,
+		face: KeyFace,
+		scriptsApproved: boolean,
+		secretValues: Record<string, string> = {}
+	): void {
 		const pending = this.debounces.get(index);
 		if (pending !== undefined) clearTimeout(pending);
 		this.debounces.set(
 			index,
 			setTimeout(() => {
 				this.debounces.delete(index);
-				void this.render(index, face, scriptsApproved);
+				void this.render(index, face, scriptsApproved, secretValues);
 			}, EDIT_DEBOUNCE_MS)
 		);
 	}
 
-	private async render(index: number, face: KeyFace, scriptsApproved: boolean): Promise<void> {
+	private async render(
+		index: number,
+		face: KeyFace,
+		scriptsApproved: boolean,
+		secretValues: Record<string, string>
+	): Promise<void> {
 		this.clearTimer(index);
 		if (face.type !== 'template') {
 			this.images[index] = null;
@@ -60,7 +74,7 @@ class TemplatePreview {
 
 		const token = ++this.tokens[index];
 		try {
-			const pixels = await fetchTemplateFace(face);
+			const pixels = await fetchTemplateFace(face, undefined, secretValues);
 			if (token !== this.tokens[index]) return;
 			this.images[index] = pixelsToDataUrl(pixels);
 			this.errors[index] = null;
@@ -69,20 +83,22 @@ class TemplatePreview {
 			this.images[index] = null;
 			this.errors[index] = err instanceof Error ? err.message : String(err);
 		}
-		if (face.refreshMinutes) this.scheduleTimer(index, face.refreshMinutes, face, scriptsApproved);
+		if (face.refreshMinutes)
+			this.scheduleTimer(index, face.refreshMinutes, face, scriptsApproved, secretValues);
 	}
 
 	private scheduleTimer(
 		index: number,
 		refreshMinutes: number,
 		face: KeyFace,
-		scriptsApproved: boolean
+		scriptsApproved: boolean,
+		secretValues: Record<string, string>
 	): void {
 		const minutes = Math.max(MIN_REFRESH_MINUTES, refreshMinutes);
 		const delay = minutes * 60_000 + Math.random() * REFRESH_JITTER_MS;
 		this.timers.set(
 			index,
-			setInterval(() => void this.render(index, face, scriptsApproved), delay)
+			setInterval(() => void this.render(index, face, scriptsApproved, secretValues), delay)
 		);
 	}
 

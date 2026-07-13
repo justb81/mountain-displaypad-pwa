@@ -117,12 +117,19 @@ export async function rasterizeHtml(html: string, size = ICON_SIZE): Promise<Uin
  * sandbox, feed the result through Mustache, and rasterise the HTML to the
  * key image. Callers (the connection store) are responsible for catching
  * failures into `liveFaceErrors` — this never swallows an error itself.
+ *
+ * `secrets` is exposed to the transform as `ctx.secrets` (a plain `KEY → VALUE`
+ * object structured-cloned into the sandbox), so a transform can authenticate a
+ * `fetch` without the credential living in the stored/exported config. It stays
+ * a parameter rather than a direct store import so this layer keeps its
+ * hardware-agnostic, dependency-light shape.
  */
 export async function fetchTemplateFace(
 	face: TemplateFace,
-	size = ICON_SIZE
+	size = ICON_SIZE,
+	secrets: Record<string, string> = {}
 ): Promise<Uint8ClampedArray> {
-	const ctx = { now: new Date() };
+	const ctx = { now: new Date(), secrets };
 	const data = face.transform ? await runTransform(face.transform, ctx) : {};
 	const html = await renderMustache(face.template, data);
 	return rasterizeHtml(html, size);

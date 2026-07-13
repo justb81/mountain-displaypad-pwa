@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { keymap } from '$lib/state/keymap.svelte.js';
+	import { secrets } from '$lib/state/secrets.svelte.js';
 	import { templatePreview } from '$lib/state/templatePreview.svelte.js';
 	import { TEMPLATE_DRAG_MIME } from '$lib/state/templates.svelte.js';
 	import type { DropInput } from '$lib/displaypad/drop.js';
@@ -63,9 +64,9 @@
 		}
 	});
 
-	/** Keep this tile's template render current: re-render whenever its face (or script approval) changes. */
+	/** Keep this tile's template render current: re-render whenever its face, script approval, or secrets change. */
 	$effect(() => {
-		templatePreview.scheduleRender(index, config.face, keymap.scriptsApproved);
+		templatePreview.scheduleRender(index, config.face, keymap.scriptsApproved, secrets.values);
 	});
 
 	let dragOver = $state(false);
