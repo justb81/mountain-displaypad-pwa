@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.8.0...mountain-displaypad-v0.8.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* don't provide brightness 0 percent ([#71](https://github.com/justb81/mountain-displaypad-pwa/issues/71)) ([9c47a34](https://github.com/justb81/mountain-displaypad-pwa/commit/9c47a3420d5bbf8ee720f2caaa24e2826cfd7416))
+* Widen the app layout and make text inputs scroll instead of overflow ([#70](https://github.com/justb81/mountain-displaypad-pwa/issues/70)) ([b082732](https://github.com/justb81/mountain-displaypad-pwa/commit/b0827320ad57bc4098cc92e470ce177237547385))
+
 ## [0.8.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.7.0...mountain-displaypad-v0.8.0) (2026-07-13)
 
 
