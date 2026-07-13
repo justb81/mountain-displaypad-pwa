@@ -17,7 +17,7 @@ export const VENDOR_ID = 0x3282;
 export const PRODUCT_IDS = [0x0009] as const;
 
 /** Valid backlight brightness levels accepted by the firmware (percent). */
-export const BRIGHTNESS_LEVELS = [0, 25, 50, 75, 100] as const;
+export const BRIGHTNESS_LEVELS = [25, 50, 75, 100] as const;
 
 /** One of the discrete brightness levels the firmware accepts. */
 export type BrightnessLevel = (typeof BRIGHTNESS_LEVELS)[number];
