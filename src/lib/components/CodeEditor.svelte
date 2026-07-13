@@ -13,12 +13,17 @@
 		value: string;
 		language: 'handlebars' | 'javascript';
 		onChange: (value: string) => void;
+		/** Greyed-out example text shown while the editor is empty; never committed as content. */
+		placeholder?: string;
 	}
 
-	let { value, language, onChange }: Props = $props();
+	let { value, language, onChange, placeholder }: Props = $props();
 
 	let container = $state<HTMLDivElement>();
 	let jar = $state<import('codejar').CodeJar>();
+	/** Whether the editor currently has no content — drives the placeholder overlay. Kept in
+	 *  sync by CodeJar's `onUpdate` and the external re-seed effect once the editor mounts. */
+	let empty = $state(true);
 
 	$effect(() => {
 		let cancelled = false;
@@ -49,7 +54,11 @@
 
 			const instance = CodeJar(container, highlight, { tab: '  ' });
 			instance.updateCode(value);
-			instance.onUpdate((code) => onChange(code));
+			empty = !value;
+			instance.onUpdate((code) => {
+				empty = code.length === 0;
+				onChange(code);
+			});
 			jar = instance;
 			destroyJar = () => instance.destroy();
 		})();
@@ -69,12 +78,25 @@
 	$effect(() => {
 		const editor = jar;
 		const latest = value;
-		if (editor && editor.toString() !== latest) editor.updateCode(latest);
+		if (editor && editor.toString() !== latest) {
+			editor.updateCode(latest);
+			empty = !latest;
+		}
 	});
 </script>
 
-<div
-	bind:this={container}
-	class="min-h-24 overflow-auto rounded border border-slate-600 bg-slate-900 p-2 font-mono text-xs whitespace-pre text-white"
-	spellcheck="false"
-></div>
+<div class="relative">
+	<div
+		bind:this={container}
+		class="min-h-24 overflow-auto rounded border border-slate-600 bg-slate-900 p-2 font-mono text-xs whitespace-pre text-white"
+		spellcheck="false"
+	></div>
+	{#if placeholder && empty}
+		<div
+			class="pointer-events-none absolute inset-0 overflow-hidden p-2 font-mono text-xs whitespace-pre text-slate-500"
+			aria-hidden="true"
+		>
+			{placeholder}
+		</div>
+	{/if}
+</div>

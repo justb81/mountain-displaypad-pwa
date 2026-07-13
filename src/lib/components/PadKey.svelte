@@ -64,9 +64,13 @@
 		}
 	});
 
-	/** Keep this tile's template render current: re-render whenever its face, script approval, or secrets change. */
+	/**
+	 * Keep this tile's template render current: re-render whenever the *active* face
+	 * (primary, or the second face while flipped), script approval, or secrets change —
+	 * so a live second face previews just like a primary one.
+	 */
 	$effect(() => {
-		templatePreview.scheduleRender(index, config.face, keymap.scriptsApproved, secrets.values);
+		templatePreview.scheduleRender(index, activeFace, keymap.scriptsApproved, secrets.values);
 	});
 
 	let dragOver = $state(false);
