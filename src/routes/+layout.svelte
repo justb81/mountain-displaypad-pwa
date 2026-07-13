@@ -1,8 +1,8 @@
 <script lang="ts">
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import Toast from '$lib/components/ui/Toast.svelte';
 	import { browser, dev, version } from '$app/environment';
+	import { base } from '$app/paths';
 	import { updateStatus } from '$lib/state/update.svelte.js';
 
 	let { children } = $props();
@@ -26,7 +26,7 @@
 	}
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head><link rel="icon" href="{base}/pwa-icon.svg" /></svelte:head>
 
 {#if updateStatus.available}
 	<div
