@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.9.0...mountain-displaypad-v0.10.0) (2026-07-14)
+
+
+### Features
+
+* Add a "next" page navigation action ([#90](https://github.com/justb81/mountain-displaypad-pwa/issues/90)) ([b21dd6f](https://github.com/justb81/mountain-displaypad-pwa/commit/b21dd6f29c0ad0b57aa218383e31683124fdec35))
+* optimize template stash — JSON I/O, keywords, badges, drag-to-stash ([#81](https://github.com/justb81/mountain-displaypad-pwa/issues/81)) ([#93](https://github.com/justb81/mountain-displaypad-pwa/issues/93)) ([64dfd3b](https://github.com/justb81/mountain-displaypad-pwa/commit/64dfd3befeafd7978e6188f655bb0b36cc882e0a))
+
 ## [0.9.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.8.2...mountain-displaypad-v0.9.0) (2026-07-13)
 
 
