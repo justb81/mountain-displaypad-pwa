@@ -156,6 +156,17 @@ class Keymap {
 		this.persist();
 	}
 
+	/**
+	 * Withhold approval for imported executable `transform`s until the user opts in
+	 * via {@link approveScripts}. Called when an imported template stash carries a
+	 * `template` face with a transform (the stash's equivalent of {@link importPages}'
+	 * safety gate) so untrusted JS never runs on apply without a deliberate approval.
+	 */
+	requireScriptApproval(): void {
+		this.scriptsApproved = false;
+		this.persist();
+	}
+
 	/** Append a new blank page and persist. Returns its index. */
 	addPage(): number {
 		this.pages.push(defaultPage());
