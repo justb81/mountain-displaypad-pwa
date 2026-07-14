@@ -27,6 +27,17 @@ const MIN_REFRESH_MINUTES = 1;
 const REFRESH_JITTER_MS = 2000;
 /** Minimum gap between a key's webhook fires, so a stuck/bouncing key can't hammer an endpoint. */
 const WEBHOOK_MIN_INTERVAL_MS = 500;
+
+/** How often the standby watchdog samples the wall clock. */
+const STANDBY_TICK_MS = 15_000;
+/**
+ * A gap between watchdog ticks larger than this means the machine was suspended.
+ * Kept above browser background-timer throttling (~60s/tick for a hidden tab) so
+ * ordinary tab-backgrounding never trips a false wake.
+ */
+const STANDBY_THRESHOLD_MS = 90_000;
+/** Wait this long before a single reconnect retry, in case USB isn't ready the instant we wake. */
+const RESUME_RETRY_MS = 1500;
 /** Some browsers report a blocked pop-up by closing it almost immediately rather than returning null. */
 const POPUP_CLOSE_CHECK_MS = 300;
 const POPUP_BLOCKED_MESSAGE =
@@ -50,6 +61,13 @@ class Connection {
 	private liveTimers = new Map<number, ReturnType<typeof setInterval>>();
 	/** Last webhook fire time per key, for the {@link WEBHOOK_MIN_INTERVAL_MS} rate-guard. */
 	private lastWebhookAt = new Map<number, number>();
+	private standbyTimer: ReturnType<typeof setInterval> | null = null;
+	/** Wall-clock time of the last standby-watchdog tick, for gap detection. */
+	private lastTickAt = 0;
+	/** Guards {@link handleResume} against overlapping runs from back-to-back ticks. */
+	private resuming = false;
+	/** Whether a pad has been opened at least once this session (gates the resume retry). */
+	private everConnected = false;
 
 	constructor() {
 		if (!browser) return;
@@ -66,6 +84,7 @@ class Connection {
 			return;
 		}
 		void this.reconnect();
+		this.startStandbyWatchdog();
 	}
 
 	/** Whether every key's face is pushed to the hardware automatically on (re)connect. */
@@ -138,8 +157,65 @@ class Connection {
 		await pad.open();
 		this.attach(pad);
 		this.status = 'connected';
+		this.everConnected = true;
 		if (this.#autoApplyOnConnect) void this.applyAll();
 		for (let i = 0; i < NUM_KEYS; i++) this.syncLiveTimer(i);
+	}
+
+	/**
+	 * Watch the wall clock for a large gap between ticks — the fingerprint of the
+	 * machine having been suspended: the event loop freezes, so the interval fires
+	 * once (late) and {@link Date.now} shows far more time elapsed than the tick.
+	 * On such a gap, treat it as a wake and resync the pad. Runs for the app's whole
+	 * lifetime, even while disconnected, so a pad dropped during sleep is reopened.
+	 * There is no direct browser "OS resumed" event, hence this heuristic.
+	 */
+	private startStandbyWatchdog(): void {
+		this.lastTickAt = Date.now();
+		this.standbyTimer = setInterval(() => {
+			const now = Date.now();
+			const gap = now - this.lastTickAt;
+			this.lastTickAt = now;
+			if (gap > STANDBY_THRESHOLD_MS) void this.handleResume();
+		}, STANDBY_TICK_MS);
+	}
+
+	/**
+	 * React to a detected wake from standby. Drops any handle that may be stale or
+	 * firmware-desynced after sleep, then silently reopens the previously-granted
+	 * pad from a clean INIT. Repainting the active page is left to
+	 * {@link openAndAttach}, which only applies when {@link autoApplyOnConnect} is
+	 * on — so a wake honours that toggle rather than forcing a repaint.
+	 */
+	async handleResume(): Promise<void> {
+		if (!browser || this.status === 'unsupported' || this.status === 'connecting') return;
+		if (this.resuming) return;
+		this.resuming = true;
+		try {
+			if (this.pad) {
+				// Closing releases the HID handles (and their inputreport/disconnect
+				// listeners) so the reopen re-runs INIT and doesn't double-subscribe;
+				// teardown() then guarantees a clean slate even if close() threw before
+				// dispatching its 'close' event. Closing does not clear the pad's
+				// screens, so with the toggle off nothing is blanked.
+				try {
+					await this.pad.close();
+				} catch {
+					// Handle already gone (e.g. the OS dropped it during sleep) — ignore.
+				}
+				this.teardown();
+			}
+			await this.reconnect();
+			// USB may not be fully re-enumerated the instant the event loop resumes.
+			// If a pad was open earlier this session but the first attempt didn't take,
+			// give it a moment and try once more.
+			if (this.everConnected && this.status !== 'connected') {
+				await new Promise((resolve) => setTimeout(resolve, RESUME_RETRY_MS));
+				await this.reconnect();
+			}
+		} finally {
+			this.resuming = false;
+		}
 	}
 
 	/** Push a single key's configured face onto the hardware (the toggled face, if any). */
