@@ -18,13 +18,18 @@ export type KeyAction =
 	  }
 	| {
 			/**
-			 * Jump the whole pad to another page of 12 keys, or back to the page this
-			 * one was entered from — the browser-side mirror of Base Camp's "Create
-			 * Folder"/"Back" pair, combined into a single action.
+			 * Jump the whole pad to another page of 12 keys, back to the page this one
+			 * was entered from, or forward to the next page in sequence — the browser-side
+			 * mirror of Base Camp's "Create Folder"/"Back" pair, plus a `'next'` convenience
+			 * for simple sequential paging, combined into a single action.
 			 */
 			type: 'navigate';
-			/** A page index to jump to, or `'back'` to pop the previous page off the history. */
-			target: number | 'back';
+			/**
+			 * A page index to jump to, `'back'` to pop the previous page off the history,
+			 * or `'next'` to advance to `(activePage + 1) % pageCount` (wrapping around),
+			 * remembering history the same way as jumping to an explicit page.
+			 */
+			target: number | 'back' | 'next';
 	  };
 
 /**

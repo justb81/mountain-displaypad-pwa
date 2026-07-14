@@ -51,6 +51,9 @@ in text content. This is a stable, boring shape — not arbitrary hand-authored 
 
 `webhook` has no source in this format at all (Base Camp has no HTTP-request action) — it is
 browser-only, never populated from a Base Camp file, and is exported as unassigned with a warning.
+Likewise `action: {type:'navigate', target:'next'}` (a browser-only convenience for stepping to
+`(activePage + 1) % pageCount`) has no Base Camp `FunctionType` equivalent — never populated from
+a Base Camp file, and exported as unassigned with a warning.
 
 ## 4. Gaps — what genuinely can't round-trip
 

@@ -242,6 +242,7 @@ class Connection {
 		else if (action.type === 'webhook' && action.url) this.fireWebhook(index, action);
 		else if (action.type === 'navigate') {
 			if (action.target === 'back') void this.goBack();
+			else if (action.target === 'next') void this.goNext();
 			else void this.goToPage(action.target);
 		}
 	}
@@ -277,6 +278,12 @@ class Connection {
 	/** Pop one level of page history and repaint the hardware if connected. */
 	async goBack(): Promise<void> {
 		keymap.back();
+		await this.afterNavigate();
+	}
+
+	/** Advance to the next page in sequence (wrapping around), remembering history, and repaint the hardware if connected. */
+	async goNext(): Promise<void> {
+		keymap.next();
 		await this.afterNavigate();
 	}
 

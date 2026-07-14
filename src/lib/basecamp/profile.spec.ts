@@ -407,6 +407,19 @@ describe('exporting and re-importing', () => {
 		expect(parseBasecampProfile(xml).pages[0][3].action).toEqual({ type: 'none' });
 	});
 
+	it('downgrades a "next page" navigate action on export with a warning, since Base Camp has no such action', () => {
+		const source = keys({
+			3: {
+				label: 'Next',
+				face: { type: 'color', color: '#000000' },
+				action: { type: 'navigate', target: 'next' }
+			}
+		});
+		const { xml, warnings } = serializeBasecampProfile([source]);
+		expect(warnings.some((w) => w.includes('next page'))).toBe(true);
+		expect(parseBasecampProfile(xml).pages[0][3].action).toEqual({ type: 'none' });
+	});
+
 	it('rejects a keys array of the wrong length', () => {
 		expect(() => serializeBasecampProfile([[]])).toThrow(RangeError);
 	});

@@ -458,7 +458,7 @@ function bindingFromKeyConfig(
 		functionType = 'Run browser';
 		subFunctionType = 'Run browser';
 		functionValue = 'Run browser';
-	} else if (action.type === 'navigate' && action.target !== 'back') {
+	} else if (action.type === 'navigate' && action.target !== 'back' && action.target !== 'next') {
 		folderId = allocateFolderId();
 		childPage = action.target;
 		functionType = 'Create Folder';
@@ -468,6 +468,10 @@ function bindingFromKeyConfig(
 	} else if (action.type === 'navigate' && action.target === 'back') {
 		functionType = 'Back';
 		functionValue = 'Back';
+	} else if (action.type === 'navigate' && action.target === 'next') {
+		warnings.push(
+			`${keyName} ("${key.label}"): "next page" has no equivalent in the DisplayPad profile format — exported as unassigned.`
+		);
 	}
 	const isBrowserAction = action.type === 'open-url';
 

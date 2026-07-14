@@ -56,7 +56,9 @@
 			case 'navigate':
 				return config.action.target === 'back'
 					? { glyph: '↩', label: 'Returns to the previous page when pressed' }
-					: { glyph: '⊞', label: 'Opens another page when pressed' };
+					: config.action.target === 'next'
+						? { glyph: '↪', label: 'Advances to the next page when pressed' }
+						: { glyph: '⊞', label: 'Opens another page when pressed' };
 			default:
 				return undefined;
 		}

@@ -175,7 +175,7 @@
 		keymap.update(index, { action });
 	}
 
-	function setNavigateTarget(target: number | 'back') {
+	function setNavigateTarget(target: number | 'back' | 'next') {
 		keymap.update(index, { action: { type: 'navigate', target } });
 	}
 
@@ -396,13 +396,18 @@
 		<div class="flex items-center gap-2 text-body text-slate-300">
 			<select
 				class="rounded-control border border-line bg-slate-900 px-2 py-1.5 text-white"
-				value={config.action.target === 'back' ? 'back' : String(config.action.target)}
+				value={config.action.target === 'back' || config.action.target === 'next'
+					? config.action.target
+					: String(config.action.target)}
 				onchange={(e) =>
 					setNavigateTarget(
-						e.currentTarget.value === 'back' ? 'back' : Number(e.currentTarget.value)
+						e.currentTarget.value === 'back' || e.currentTarget.value === 'next'
+							? e.currentTarget.value
+							: Number(e.currentTarget.value)
 					)}
 			>
 				<option value="back">← Back to the previous page</option>
+				<option value="next">→ Next page in sequence</option>
 				{#each Array.from({ length: keymap.pageCount }, (_, i) => i) as pageIndex (pageIndex)}
 					<option value={String(pageIndex)}>{keymap.pageName(pageIndex)}</option>
 				{/each}
@@ -411,6 +416,8 @@
 		</div>
 		{#if config.action.target === 'back'}
 			<Hint>Returns to whichever page this key was entered from.</Hint>
+		{:else if config.action.target === 'next'}
+			<Hint>Advances to the next page, wrapping around to the first page after the last.</Hint>
 		{/if}
 	{:else if config.action.type === 'webhook'}
 		<div class="flex flex-col gap-3 text-body text-slate-300">

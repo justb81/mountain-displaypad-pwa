@@ -162,6 +162,60 @@ describe('keymap.removePage', () => {
 	});
 });
 
+describe('keymap.next', () => {
+	it('advances activePage by one and lets back() return to where it was', () => {
+		keymap.importPages([
+			keymap.keys.map((_, i) => config(`a${i}`)),
+			keymap.keys.map((_, i) => config(`b${i}`)),
+			keymap.keys.map((_, i) => config(`c${i}`))
+		]);
+
+		keymap.next();
+		expect(keymap.activePage).toBe(1);
+
+		keymap.back();
+		expect(keymap.activePage).toBe(0);
+	});
+
+	it('wraps around from the last page back to the first', () => {
+		keymap.importPages([
+			keymap.keys.map((_, i) => config(`a${i}`)),
+			keymap.keys.map((_, i) => config(`b${i}`))
+		]);
+		keymap.switchPage(1);
+
+		keymap.next();
+
+		expect(keymap.activePage).toBe(0);
+	});
+
+	it('is a no-op on a single-page keymap', () => {
+		keymap.importAll(keymap.keys.map((_, i) => config(`k${i}`)));
+
+		keymap.next();
+
+		expect(keymap.activePage).toBe(0);
+	});
+
+	it('leaves a "next" navigate action untouched when a page is removed', () => {
+		const linkPage = keymap.keys.map((_, i) => config(`l${i}`));
+		linkPage[0] = {
+			label: 'next',
+			face: { type: 'color', color: '#000000' },
+			action: { type: 'navigate', target: 'next' }
+		};
+		keymap.importPages([
+			linkPage,
+			keymap.keys.map((_, i) => config(`b${i}`)),
+			keymap.keys.map((_, i) => config(`c${i}`))
+		]);
+
+		keymap.removePage(1);
+
+		expect(keymap.pages[0][0].action).toEqual({ type: 'navigate', target: 'next' });
+	});
+});
+
 describe('keymap legacy action migration', () => {
 	it('folds legacy open-folder/back/copy-text actions into the current union on import', () => {
 		const keys = keymap.keys.map((_, i) => config(`k${i}`));
