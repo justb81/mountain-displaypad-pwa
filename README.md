@@ -38,7 +38,7 @@ This configurator does all of that from a browser tab. There is **no companion a
 - 🔑 **Secrets** — store an API token once and reference it by name (`{{secret.KEY}}` in webhook headers/body, `ctx.secrets.KEY` in a transform) so credentials stay out of your saved and exported configs (see [Secrets](#secrets)).
 - 🔁 **Toggle keys** — give a key a second face and it flips between the two on every press (mic mute/unmute, scene A/B, …).
 - 🗂️ **Pages** — organise keys across multiple pages; a _Page navigation_ key jumps to another page, returns to the previous one, or steps to the next page in sequence, mirroring Base Camp's nested pages. Rename pages and navigate them from the breadcrumb tabs.
-- 🖱️ **Drag & drop + template stash** — drag one key onto another to swap (hold ⌘/Ctrl to copy), and save any key's full setup to a reusable stash you can drop onto other keys.
+- 🖱️ **Drag & drop + template stash** — drag one key onto another to swap (hold ⌘/Ctrl to copy), or drag a key into the **template stash** to bank its full setup and clear the slot (hold ⌘/Ctrl to keep a copy). Tag stashed templates with keywords to filter and auto-cluster them, show their face/action icons at a glance, and export/import the whole stash as a JSON file (drop one onto the panel to import).
 - 📄 **Base Camp import/export** — read and write Mountain Base Camp `<Profile>` XML, so configs move both ways with the official software (see [Base Camp import/export](#base-camp-importexport)).
 - ✂️ **Remove background** — one click knocks the flat background colour out of an uploaded icon.
 - 💾 **Remembers everything** — your keymap, pages, and stash persist in the browser, and a previously-approved pad reconnects silently on the next visit.
@@ -156,7 +156,7 @@ The code is layered low-level → UI, so the tricky wire format can be tested wi
 
 1. **Protocol (pure)** — `src/lib/displaypad/protocol.ts`, `image.ts`. The reverse-engineered USB HID wire format: BGR pixel encoding, the init/image control frames, and key-press decoding. No browser APIs, fully unit-tested.
 2. **Device transport (browser-only)** — `device.ts`, `raster.ts`, `liveface.ts`, `template.ts`, `sandbox.ts`. Opens the composite HID device, drives the pixel-transfer state machine, rasterises faces to 102×102 RGBA, and runs template transforms in a sandboxed iframe.
-3. **State (Svelte 5 runes)** — `src/lib/state/*.svelte.ts`. Reactive singletons for the `keymap` (pages of keys, persisted), the `connection` (the live pad and its timers/actions), `secrets` (named credentials referenced by webhooks and transforms), and template previews.
+3. **State (Svelte 5 runes)** — `src/lib/state/*.svelte.ts`. Reactive singletons for the `keymap` (pages of keys, persisted), the `connection` (the live pad and its timers/actions), the `templates` stash (saved key configs with keywords, JSON import/export; pure keyword/cluster helpers in `templateStash.ts`), `secrets` (named credentials referenced by webhooks and transforms), and template previews.
 4. **UI** — `src/routes/+page.svelte` + `src/lib/components/*`. Presentational Svelte components that read and mutate the stores.
 
 The whole thing prerenders to a static shell (`ssr = false`, `prerender = true`) and hydrates into a client-only app, because WebHID has no server-side equivalent. Built with **SvelteKit + Svelte 5** (runes), **Tailwind CSS 4**, TypeScript, and Vitest; the template editor uses CodeJar + Prism, all bundled with no CDN.
