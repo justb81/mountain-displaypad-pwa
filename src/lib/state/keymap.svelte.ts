@@ -171,11 +171,7 @@ class Keymap {
 		for (const page of this.pages) {
 			for (let i = 0; i < page.length; i++) {
 				const action = page[i].action;
-				if (
-					action.type !== 'navigate' ||
-					action.target === 'back' ||
-					action.target === 'next'
-				)
+				if (action.type !== 'navigate' || action.target === 'back' || action.target === 'next')
 					continue;
 				if (action.target === index) page[i] = { ...page[i], action: { type: 'none' } };
 				else if (action.target > index)
