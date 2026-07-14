@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.10.0...mountain-displaypad-v0.11.0) (2026-07-14)
+
+
+### Features
+
+* re-sync the pad after the machine wakes from standby ([#94](https://github.com/justb81/mountain-displaypad-pwa/issues/94)) ([a742b1f](https://github.com/justb81/mountain-displaypad-pwa/commit/a742b1f4b1f9fa084d25d913dff2a58a20d2114b))
+
 ## [0.10.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.9.0...mountain-displaypad-v0.10.0) (2026-07-14)
 
 
