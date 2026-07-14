@@ -171,7 +171,8 @@ class Keymap {
 		for (const page of this.pages) {
 			for (let i = 0; i < page.length; i++) {
 				const action = page[i].action;
-				if (action.type !== 'navigate' || action.target === 'back') continue;
+				if (action.type !== 'navigate' || action.target === 'back' || action.target === 'next')
+					continue;
 				if (action.target === index) page[i] = { ...page[i], action: { type: 'none' } };
 				else if (action.target > index)
 					page[i] = { ...page[i], action: { ...action, target: action.target - 1 } };
@@ -195,6 +196,11 @@ class Keymap {
 	/** Pop one level of navigation history, or go to the root page if there is none. */
 	back(): void {
 		this.activePage = this.pageHistory.pop() ?? 0;
+	}
+
+	/** Advance to the next page in sequence, wrapping around after the last, remembering history so {@link back} can return. */
+	next(): void {
+		this.openPage((this.activePage + 1) % this.pages.length);
 	}
 
 	/** Jump straight to `page` without pushing navigation history (e.g. a breadcrumb click). */

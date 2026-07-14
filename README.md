@@ -37,7 +37,7 @@ This configurator does all of that from a browser tab. There is **no companion a
 - ⚡ **Rich press actions** — open a URL in the browser, fire an HTTP **webhook**, or jump between pages (see [Actions](#actions)).
 - 🔑 **Secrets** — store an API token once and reference it by name (`{{secret.KEY}}` in webhook headers/body, `ctx.secrets.KEY` in a transform) so credentials stay out of your saved and exported configs (see [Secrets](#secrets)).
 - 🔁 **Toggle keys** — give a key a second face and it flips between the two on every press (mic mute/unmute, scene A/B, …).
-- 🗂️ **Pages** — organise keys across multiple pages; a _Page navigation_ key jumps to another page or returns to the previous one, mirroring Base Camp's nested pages. Rename pages and navigate them from the breadcrumb tabs.
+- 🗂️ **Pages** — organise keys across multiple pages; a _Page navigation_ key jumps to another page, returns to the previous one, or steps to the next page in sequence, mirroring Base Camp's nested pages. Rename pages and navigate them from the breadcrumb tabs.
 - 🖱️ **Drag & drop + template stash** — drag one key onto another to swap (hold ⌘/Ctrl to copy), and save any key's full setup to a reusable stash you can drop onto other keys.
 - 📄 **Base Camp import/export** — read and write Mountain Base Camp `<Profile>` XML, so configs move both ways with the official software (see [Base Camp import/export](#base-camp-importexport)).
 - ✂️ **Remove background** — one click knocks the flat background colour out of an uploaded icon.
@@ -95,7 +95,7 @@ Assign what a key does when it's pressed. Because everything happens in the page
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Open URL in Browser** | Opens a link in a new tab.                                                                                                                                                                   |
 | **Webhook**             | Fires a `GET`/`POST` request with custom headers and a JSON body — toggle a smart light, kick a CI job, switch an OBS scene. A `no-cors` fire-and-forget mode covers trigger-only endpoints. |
-| **Page navigation**     | Jumps the whole pad to another page of 12 keys, or returns to the page this one was entered from.                                                                                            |
+| **Page navigation**     | Jumps the whole pad to another page of 12 keys, returns to the page this one was entered from, or advances to the next page in sequence (wrapping around after the last).                    |
 
 <div align="center">
 <img src="docs/images/inspector-webhook.png" alt="The key inspector for a webhook action, showing method, URL, a JSON body, custom headers, and a fire-and-forget no-cors option." width="380" />
