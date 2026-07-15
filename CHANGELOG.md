@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.11.0...mountain-displaypad-v0.12.0) (2026-07-15)
+
+
+### Features
+
+* PWA manifest tier 1 — focus-existing launch, install identity, icons, Apply-all shortcut ([#108](https://github.com/justb81/mountain-displaypad-pwa/issues/108)) ([8eb7cdf](https://github.com/justb81/mountain-displaypad-pwa/commit/8eb7cdf8823800deb6132969df5a33c2ff232244)), closes [#105](https://github.com/justb81/mountain-displaypad-pwa/issues/105)
+* show connection state via Badging API on installed app icon ([#110](https://github.com/justb81/mountain-displaypad-pwa/issues/110)) ([7b19a42](https://github.com/justb81/mountain-displaypad-pwa/commit/7b19a42e4862a0f4ba9f2f469a95ee88bf38c0d1)), closes [#106](https://github.com/justb81/mountain-displaypad-pwa/issues/106)
+* Window Controls Overlay — native-feeling title bar for the installed app ([#111](https://github.com/justb81/mountain-displaypad-pwa/issues/111)) ([f031c02](https://github.com/justb81/mountain-displaypad-pwa/commit/f031c02799d0c2624e434d678bfb010a5f5efcd3))
+
 ## [0.11.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.10.0...mountain-displaypad-v0.11.0) (2026-07-14)
 
 
