@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ConnectionStatus } from '$lib/types.js';
+	import { windowChrome } from '$lib/state/windowChrome.svelte.js';
 
 	interface Props {
 		status: ConnectionStatus;
@@ -21,7 +22,8 @@
 <span
 	role="status"
 	aria-live="polite"
-	class="inline-flex items-center gap-1.5 rounded-full border border-line bg-slate-900/60 px-2.5 py-1 text-label font-medium {current.text}"
+	class="inline-flex items-center gap-1.5 rounded-full border border-line bg-slate-900/60 font-medium
+		{windowChrome.visible ? 'px-2 py-0.5 text-caption' : 'px-2.5 py-1 text-label'} {current.text}"
 >
 	<span class="h-1.5 w-1.5 flex-none rounded-full {current.dot}"></span>
 	{current.label}

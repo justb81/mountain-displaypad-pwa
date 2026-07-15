@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { windowChrome } from '$lib/state/windowChrome.svelte.js';
 
 	interface Props {
 		label?: string;
@@ -30,7 +31,8 @@
 		aria-expanded={open}
 		aria-label={label}
 		title={label}
-		class="focus-visible:outline-accent flex h-9 w-9 items-center justify-center rounded-control border border-line text-slate-300 transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+		class="focus-visible:outline-accent flex items-center justify-center rounded-control border border-line text-slate-300 transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+			{windowChrome.visible ? 'h-7 w-7' : 'h-9 w-9'}"
 	>
 		<svg viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
 			<circle cx="4" cy="10" r="1.5" />

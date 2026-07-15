@@ -5,6 +5,7 @@
 	"description": "Configure your Mountain DisplayPad from the browser.",
 	"start_url": ".",
 	"scope": ".",
+	"display_override": ["window-controls-overlay", "standalone"],
 	"display": "standalone",
 	"orientation": "any",
 	"background_color": "#020617",
