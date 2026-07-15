@@ -99,7 +99,9 @@
 
 <div
 	class="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-5 p-4 text-slate-100 sm:p-6"
-	style={windowChrome.visible ? `padding-top: calc(${windowChrome.rect.height}px + 1rem)` : undefined}
+	style={windowChrome.visible
+		? `padding-top: calc(${windowChrome.rect.height}px + 1rem)`
+		: undefined}
 >
 	<header
 		class="app-header flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4
