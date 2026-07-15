@@ -9,6 +9,7 @@
 	import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 	import OverflowMenu from '$lib/components/ui/OverflowMenu.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
+	import { browser } from '$app/environment';
 	import { connection } from '$lib/state/connection.svelte.js';
 	import { debug } from '$lib/state/debug.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
@@ -19,6 +20,39 @@
 	let selected = $state(0);
 	let confirmResetAll = $state(false);
 	let secretsOpen = $state(false);
+
+	/** How long to wait for a granted pad to (re)connect after the "Apply all" shortcut, before giving up. */
+	const APPLY_ALL_SHORTCUT_TIMEOUT_MS = 5000;
+
+	/**
+	 * Set while waiting for the "Apply all keys" install shortcut (`?action=apply-all`,
+	 * see `static/manifest.webmanifest`) to find a connected pad. The shortcut can't
+	 * prompt the WebHID picker itself (no user gesture), so it piggybacks on the
+	 * silent `fromGranted()` reconnect the connection store already runs on load.
+	 */
+	let pendingApplyAllShortcut = $state(false);
+
+	if (browser) {
+		const url = new URL(location.href);
+		if (url.searchParams.get('action') === 'apply-all') {
+			// Strip the param immediately so a reload never re-triggers this.
+			url.searchParams.delete('action');
+			history.replaceState(null, '', url);
+			pendingApplyAllShortcut = true;
+			setTimeout(() => {
+				if (!pendingApplyAllShortcut) return;
+				pendingApplyAllShortcut = false;
+				toast.info('Connect your DisplayPad, then use "Apply all to pad" to push your keys.');
+			}, APPLY_ALL_SHORTCUT_TIMEOUT_MS);
+		}
+	}
+
+	$effect(() => {
+		if (pendingApplyAllShortcut && connection.status === 'connected') {
+			pendingApplyAllShortcut = false;
+			void applyAll();
+		}
+	});
 
 	/** Reset the selected key on Delete, unless the keypress belongs to a text field/editor. */
 	function onWindowKeydown(event: KeyboardEvent) {
