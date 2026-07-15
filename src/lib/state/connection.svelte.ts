@@ -44,7 +44,7 @@ const POPUP_BLOCKED_MESSAGE =
 	'Pop-up blocked — allow pop-ups for this site so key presses can open links.';
 
 class Connection {
-	status = $state<ConnectionStatus>('disconnected');
+	#status = $state<ConnectionStatus>('disconnected');
 	error = $state<string | null>(null);
 	pressed = $state<boolean[]>(Array(NUM_KEYS).fill(false));
 	/** Per-key error from the most recent remote-face fetch, `null` once it succeeds. */
@@ -85,6 +85,30 @@ class Connection {
 		}
 		void this.reconnect();
 		this.startStandbyWatchdog();
+		window.addEventListener('pagehide', () => this.syncBadge('disconnected'));
+	}
+
+	/** Connection lifecycle of the pad; setting it keeps the installed app's taskbar/dock badge in sync. */
+	get status(): ConnectionStatus {
+		return this.#status;
+	}
+
+	set status(value: ConnectionStatus) {
+		this.#status = value;
+		this.syncBadge(value);
+	}
+
+	/**
+	 * Reflect connection state onto the installed app's icon via the Badging API.
+	 * Feature-detected and silent everywhere it isn't supported (Firefox, Safari,
+	 * an uninstalled Chromium tab) — badge state is cosmetic and must never surface
+	 * as an app error. Scoped to connection state only; error counts (live-face
+	 * failures, popup-blocked warnings, pending script approval) are out of scope.
+	 */
+	private syncBadge(status: ConnectionStatus): void {
+		if (!browser || !('setAppBadge' in navigator)) return;
+		const call = status === 'connected' ? navigator.setAppBadge() : navigator.clearAppBadge();
+		void call.catch(() => {});
 	}
 
 	/** Whether every key's face is pushed to the hardware automatically on (re)connect. */
