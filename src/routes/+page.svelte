@@ -14,6 +14,7 @@
 	import { debug } from '$lib/state/debug.svelte.js';
 	import { keymap } from '$lib/state/keymap.svelte.js';
 	import { toast } from '$lib/state/toast.svelte.js';
+	import { windowChrome } from '$lib/state/windowChrome.svelte.js';
 	import { BRIGHTNESS_LEVELS, type BrightnessLevel } from '$lib/displaypad/protocol.js';
 	import pkg from '../../package.json';
 
@@ -96,11 +97,22 @@
 
 <SecretsDialog open={secretsOpen} onclose={() => (secretsOpen = false)} />
 
-<div class="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-5 p-4 text-slate-100 sm:p-6">
-	<header class="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
-		<div class="flex items-center gap-3">
+<div
+	class="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-5 p-4 text-slate-100 sm:p-6"
+	style={windowChrome.visible
+		? `padding-top: calc(${windowChrome.rect.height}px + 1rem)`
+		: undefined}
+>
+	<header
+		class="app-header flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4
+			{windowChrome.visible ? 'flex-nowrap border-none bg-accent-strong px-3 py-0' : ''}"
+		data-wco={windowChrome.visible}
+	>
+		<div class="flex min-w-0 items-center gap-3">
 			<span
-				class="flex h-9 w-9 flex-none items-center justify-center rounded-control bg-accent-strong/20 text-accent-soft"
+				class="flex h-9 w-9 flex-none items-center justify-center rounded-control bg-accent-strong/20 text-accent-soft {windowChrome.visible
+					? 'h-7 w-7 bg-white/15 text-white'
+					: ''}"
 			>
 				<svg
 					viewBox="0 0 24 24"
@@ -114,9 +126,15 @@
 					<path d="M8 20h8M12 16v4" stroke-linecap="round" />
 				</svg>
 			</span>
-			<h1 class="text-h1 font-semibold text-white">DisplayPad Configurator</h1>
+			<h1
+				class="truncate text-h1 font-semibold text-white {windowChrome.visible
+					? 'hidden sm:block'
+					: ''}"
+			>
+				DisplayPad Configurator
+			</h1>
 		</div>
-		<div class="flex items-center gap-3">
+		<div class="app-header-no-drag flex flex-none items-center gap-3">
 			<ConnectButton />
 			<OverflowMenu>
 				<label

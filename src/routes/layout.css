@@ -55,3 +55,26 @@ body {
 	background-color: #020617;
 	min-height: 100vh;
 }
+
+/*
+ * Window Controls Overlay (installed, Chromium-desktop only): the app header is
+ * repositioned to sit inside the OS titlebar strip, using the env() vars Chromium
+ * populates with the rect it isn't drawing window buttons over. Every var has a
+ * fallback so this block is inert everywhere else (browser tab, non-Chromium,
+ * overlay toggled off) — `[data-wco='true']` is only ever set when the overlay is
+ * actually visible right now.
+ */
+.app-header[data-wco='true'] {
+	position: fixed;
+	inset-inline-start: env(titlebar-area-x, 0);
+	top: env(titlebar-area-y, 0);
+	width: env(titlebar-area-width, 100%);
+	height: env(titlebar-area-height, auto);
+	-webkit-app-region: drag;
+	z-index: 40;
+}
+
+/* Every interactive control inside the drag strip needs this, or it becomes unclickable. */
+.app-header[data-wco='true'] .app-header-no-drag {
+	-webkit-app-region: no-drag;
+}
