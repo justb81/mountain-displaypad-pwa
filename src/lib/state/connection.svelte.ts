@@ -28,12 +28,17 @@ const REFRESH_JITTER_MS = 2000;
 /** Minimum gap between a key's webhook fires, so a stuck/bouncing key can't hammer an endpoint. */
 const WEBHOOK_MIN_INTERVAL_MS = 500;
 
-/** How often the standby watchdog samples the wall clock. */
+/** How often the standby watchdog samples the wall clock while the page is visible. */
 const STANDBY_TICK_MS = 15_000;
 /**
- * A gap between watchdog ticks larger than this means the machine was suspended.
- * Kept above browser background-timer throttling (~60s/tick for a hidden tab) so
- * ordinary tab-backgrounding never trips a false wake.
+ * A gap between wall-clock samples larger than this is read as the machine having
+ * been suspended (a frozen event loop). Only judged while the page is VISIBLE (or
+ * once, when it becomes visible again): a hidden/minimized tab has its timers
+ * heavily throttled — coalesced to roughly once a minute, and deferred further under
+ * OS power management — so a large gap there is ordinary throttling, indistinguishable
+ * from a real suspend by gap alone. Reopening the pad on those throttled gaps (which
+ * tears down the live-face refresh timers) is exactly what stopped a minimized window
+ * from updating, so a gap accrued while hidden is never treated as a wake in place.
  */
 const STANDBY_THRESHOLD_MS = 90_000;
 /** Wait this long before a single reconnect retry, in case USB isn't ready the instant we wake. */
@@ -187,22 +192,48 @@ class Connection {
 	}
 
 	/**
-	 * Watch the wall clock for a large gap between ticks — the fingerprint of the
+	 * Watch the wall clock for a large gap between samples — the fingerprint of the
 	 * machine having been suspended: the event loop freezes, so the interval fires
 	 * once (late) and {@link Date.now} shows far more time elapsed than the tick.
-	 * On such a gap, treat it as a wake and resync the pad. Runs for the app's whole
-	 * lifetime, even while disconnected, so a pad dropped during sleep is reopened.
-	 * There is no direct browser "OS resumed" event, hence this heuristic.
+	 * On such a gap, treat it as a wake and resync the pad. There is no direct
+	 * browser "OS resumed" event, hence this heuristic.
+	 *
+	 * Judged only while the page is visible — a hidden/minimized tab throttles its
+	 * timers, so a large gap there is background throttling, not a suspend, and
+	 * reopening the pad on it would tear down the live-face timers and stop a
+	 * minimized window from refreshing. The hidden span is instead judged once, when
+	 * the tab comes back to visible (see {@link onVisibilityChange}), which still
+	 * catches a suspend that happened while minimized without churning throughout.
+	 * Runs for the app's whole lifetime, even while disconnected, so a pad dropped
+	 * during sleep is reopened.
 	 */
 	private startStandbyWatchdog(): void {
 		this.lastTickAt = Date.now();
 		this.standbyTimer = setInterval(() => {
+			// Leave lastTickAt frozen while hidden so the throttled gap isn't misread
+			// as a wake here; onVisibilityChange judges the whole hidden span on return.
+			if (document.hidden) return;
 			const now = Date.now();
 			const gap = now - this.lastTickAt;
 			this.lastTickAt = now;
 			if (gap > STANDBY_THRESHOLD_MS) void this.handleResume();
 		}, STANDBY_TICK_MS);
+		document.addEventListener('visibilitychange', this.onVisibilityChange);
 	}
+
+	/**
+	 * On returning to a tab that was hidden long enough for the machine to have
+	 * suspended meanwhile, resync once — rather than never (the watchdog stays idle
+	 * while hidden) or repeatedly (which would keep breaking the live-face refreshes).
+	 * A brief hide stays under {@link STANDBY_THRESHOLD_MS} and is ignored.
+	 */
+	private onVisibilityChange = (): void => {
+		if (document.hidden) return;
+		const now = Date.now();
+		const gap = now - this.lastTickAt;
+		this.lastTickAt = now;
+		if (gap > STANDBY_THRESHOLD_MS) void this.handleResume();
+	};
 
 	/**
 	 * React to a detected wake from standby. Drops any handle that may be stale or
