@@ -17,8 +17,6 @@
  */
 
 import { browser } from '$app/environment';
-import { isQuotaExceeded, QUOTA_TOAST_KEY, QUOTA_TOAST_MESSAGE } from '$lib/state/storageQuota.js';
-import { toast } from '$lib/state/toast.svelte.js';
 
 const STORAGE_KEY = 'displaypad.secrets.v1';
 
@@ -116,21 +114,7 @@ class Secrets {
 	}
 
 	private persist(): void {
-		if (!browser) return;
-		try {
-			// Storing secret values as plaintext is intentional and documented (see the file
-			// header): device-local scoping, not confidentiality. Encryption is deliberately
-			// out of scope here and tracked separately (issue #102), so the clear-text-storage
-			// alert on this line is an accepted risk.
-			// codeql[js/clear-text-storage-of-sensitive-data]
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries));
-			toast.dismissByKey(QUOTA_TOAST_KEY);
-		} catch (err) {
-			if (isQuotaExceeded(err)) {
-				toast.push(QUOTA_TOAST_MESSAGE, 'error', { persistent: true, dedupeKey: QUOTA_TOAST_KEY });
-			}
-			// A non-quota storage failure is left to surface elsewhere; secrets stay in memory.
-		}
+		if (browser) localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries));
 	}
 }
 
