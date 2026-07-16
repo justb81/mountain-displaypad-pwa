@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.12.1...mountain-displaypad-v0.13.0) (2026-07-16)
+
+
+### Features
+
+* storage hardening — quota-safe persist, IndexedDB image payloads, usage meter, snapshots ([#102](https://github.com/justb81/mountain-displaypad-pwa/issues/102)) ([#120](https://github.com/justb81/mountain-displaypad-pwa/issues/120)) ([656e20e](https://github.com/justb81/mountain-displaypad-pwa/commit/656e20e045181efe83a5c7b1f1b20ed310d6037e))
+
 ## [0.12.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.12.0...mountain-displaypad-v0.12.1) (2026-07-16)
 
 
