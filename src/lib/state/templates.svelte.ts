@@ -8,15 +8,27 @@
  *
  * The pure keyword/filter/cluster helpers and the {@link Template} type live in the
  * runes-free `templateStash.ts` so they stay directly Node-testable; this module is
- * the thin persistence + import/export shell around them.
+ * the thin persistence + import/export shell around them. Image payloads (face data
+ * URLs and stash thumbnails) live in IndexedDB by content hash (issue #102); the
+ * stored JSON references them by id and exports inline the data back.
  */
 
 import { browser } from '$app/environment';
 import { downscaleToDataUrl, pixelsToDataUrl } from '$lib/displaypad/raster.js';
 import { fetchTemplateFace } from '$lib/displaypad/template.js';
+import {
+	configImageIds,
+	dehydrateConfig,
+	hydrateConfig,
+	inlineConfig,
+	storedStashImageIds
+} from '$lib/state/imagePayloads.js';
+import * as imageStore from '$lib/state/imageStore.js';
 import { keymap } from '$lib/state/keymap.svelte.js';
 import { secrets } from '$lib/state/secrets.svelte.js';
 import { coerceKeywords, parseKeywords, type Template } from '$lib/state/templateStash.js';
+import { isQuotaExceeded, QUOTA_TOAST_KEY, QUOTA_TOAST_MESSAGE } from '$lib/state/storageQuota.js';
+import { toast } from '$lib/state/toast.svelte.js';
 import { migrateKeyConfig, type KeyConfig, type KeyFace } from '$lib/types.js';
 
 // Re-exported so the stash UI and tests can import the whole template stash surface from one module.
@@ -48,6 +60,18 @@ interface TemplateExportEntry {
 	previewDataUrl?: string;
 }
 
+/** One template as persisted to localStorage — image payloads referenced by content-hash id. */
+interface StoredTemplate {
+	id: string;
+	name: string;
+	config: KeyConfig;
+	keywords?: string[];
+	/** Content-hash pointer to the stash thumbnail in the blob store. */
+	previewImageId?: string;
+	/** Legacy inline thumbnail, migrated to {@link previewImageId} on next save. */
+	previewDataUrl?: string;
+}
+
 async function shrinkFace(face: KeyFace): Promise<KeyFace> {
 	if (face.type !== 'image' || !browser) return face;
 	return { ...face, dataUrl: await downscaleToDataUrl(face.dataUrl) };
@@ -70,6 +94,14 @@ function configHasTransform(config: KeyConfig): boolean {
 		(config.face.type === 'template' && !!config.face.transform) ||
 		(config.secondFace?.type === 'template' && !!config.secondFace.transform)
 	);
+}
+
+/** Whether a stored config carries an image face still inline (legacy) rather than an `imageId` pointer. */
+function hasInlineImage(config: KeyConfig | undefined): boolean {
+	if (!config) return false;
+	const inline = (face: KeyFace | undefined) =>
+		!!face && face.type === 'image' && !!face.dataUrl && !face.imageId;
+	return inline(config.face) || inline(config.secondFace);
 }
 
 /** Narrow a parsed JSON value to a plausible {@link KeyConfig} before migrating it. */
@@ -100,8 +132,16 @@ function extractEntries(parsed: unknown): unknown[] | null {
 class Templates {
 	items = $state<Template[]>([]);
 
+	/** Serialises overlapping saves so IndexedDB writes and the localStorage write don't race. */
+	private persistChain: Promise<void> = Promise.resolve();
+	/** Parsed stored rows kept between {@link load} and {@link hydrate} so preview ids can be matched back. */
+	private pending: StoredTemplate[] | null = null;
+
 	constructor() {
-		if (browser) this.load();
+		if (!browser) return;
+		this.load();
+		imageStore.registerImageRefs(() => storedStashImageIds(localStorage.getItem(STORAGE_KEY)));
+		void this.hydrate();
 	}
 
 	/**
@@ -149,11 +189,11 @@ class Templates {
 		this.persist();
 	}
 
-	/** Serialise the whole stash to a portable, versioned JSON string (ids are omitted — re-minted on import). */
+	/** Serialise the whole stash to a portable, versioned JSON string (ids are omitted — re-minted on import; images inlined). */
 	exportJson(): string {
 		const templates: TemplateExportEntry[] = this.items.map((t) => ({
 			name: t.name,
-			config: t.config,
+			config: inlineConfig(t.config),
 			...(t.keywords?.length ? { keywords: t.keywords } : {}),
 			...(t.previewDataUrl ? { previewDataUrl: t.previewDataUrl } : {})
 		}));
@@ -220,16 +260,107 @@ class Templates {
 		try {
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (!raw) return;
-			const parsed = JSON.parse(raw) as Template[];
-			if (Array.isArray(parsed))
-				this.items = parsed.map((t) => ({ ...t, config: migrateKeyConfig(t.config) }));
+			const parsed = JSON.parse(raw);
+			if (!Array.isArray(parsed)) return;
+			this.pending = parsed as StoredTemplate[];
+			this.items = this.pending.map((t) => ({
+				id: typeof t.id === 'string' ? t.id : crypto.randomUUID(),
+				name: t.name,
+				config: migrateKeyConfig(t.config),
+				...(t.keywords ? { keywords: t.keywords } : {}),
+				...(t.previewDataUrl ? { previewDataUrl: t.previewDataUrl } : {})
+			}));
 		} catch {
 			// Corrupt storage — fall back to an empty stash rather than crashing the app.
 		}
 	}
 
+	/**
+	 * Fill image data URLs (face payloads and thumbnails) from the blob store after the
+	 * synchronous {@link load}. Legacy inline data URLs are left in place and migrated to
+	 * the blob store by the follow-up {@link persist}. Runs once on startup.
+	 */
+	private async hydrate(): Promise<void> {
+		if (!browser || !this.pending) return;
+		const pending = this.pending;
+		this.pending = null;
+
+		const ids: string[] = [];
+		let legacyInline = false;
+		for (const t of pending) {
+			ids.push(...configImageIds(t.config));
+			if (typeof t.previewImageId === 'string') ids.push(t.previewImageId);
+			if (hasInlineImage(t.config) || (t.previewDataUrl && !t.previewImageId)) legacyInline = true;
+		}
+		const images = await imageStore.getImages(ids);
+		this.items = pending.map((t) => {
+			const config = hydrateConfig(migrateKeyConfig(t.config), images);
+			const previewDataUrl = t.previewImageId
+				? (images.get(t.previewImageId) ?? undefined)
+				: t.previewDataUrl;
+			return {
+				id: typeof t.id === 'string' ? t.id : crypto.randomUUID(),
+				name: t.name,
+				config,
+				...(t.keywords ? { keywords: t.keywords } : {}),
+				...(previewDataUrl ? { previewDataUrl } : {})
+			};
+		});
+
+		if (legacyInline) this.persist();
+		imageStore.scheduleGc();
+	}
+
+	/** Build one stored template row, dehydrating its image payloads into the blob store. */
+	private async serializeItem(t: Template): Promise<StoredTemplate> {
+		const config = await dehydrateConfig(t.config, imageStore.putImage);
+		let previewImageId: string | undefined;
+		let previewDataUrl: string | undefined;
+		if (t.previewDataUrl) {
+			try {
+				previewImageId = await imageStore.putImage(t.previewDataUrl);
+			} catch {
+				previewDataUrl = t.previewDataUrl; // IDB unavailable — keep it inline.
+			}
+		}
+		return {
+			id: t.id,
+			name: t.name,
+			config,
+			...(t.keywords?.length ? { keywords: t.keywords } : {}),
+			...(previewImageId ? { previewImageId } : {}),
+			...(previewDataUrl ? { previewDataUrl } : {})
+		};
+	}
+
+	/**
+	 * Persist the stash: image payloads to IndexedDB, config JSON (with `imageId`
+	 * pointers) to localStorage. Async and serialised; a `QuotaExceededError` surfaces as
+	 * a persistent, actionable toast rather than an exception thrown mid-edit.
+	 */
 	private persist(): void {
-		if (browser) localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
+		if (!browser) return;
+		const plain = $state.snapshot(this.items) as Template[];
+		this.persistChain = this.persistChain
+			.then(async () => {
+				const stored = await Promise.all(plain.map((t) => this.serializeItem(t)));
+				try {
+					localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+					toast.dismissByKey(QUOTA_TOAST_KEY);
+				} catch (err) {
+					if (isQuotaExceeded(err)) {
+						toast.push(QUOTA_TOAST_MESSAGE, 'error', {
+							persistent: true,
+							dedupeKey: QUOTA_TOAST_KEY
+						});
+					} else {
+						throw err;
+					}
+				}
+			})
+			.catch(() => {
+				// A non-quota failure (serialisation, IDB) must not wedge the persist chain.
+			});
 	}
 }
 

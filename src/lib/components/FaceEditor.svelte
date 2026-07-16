@@ -210,7 +210,7 @@
 		</div>
 	{:else if faceKind === 'image'}
 		<div class="flex items-center gap-3">
-			{#if face.type === 'image'}
+			{#if face.type === 'image' && face.dataUrl}
 				<img
 					src={face.dataUrl}
 					alt="Key preview"
