@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.12.0...mountain-displaypad-v0.12.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* center WCO title bar content and use the app icon in the header ([#119](https://github.com/justb81/mountain-displaypad-pwa/issues/119)) ([e46aaac](https://github.com/justb81/mountain-displaypad-pwa/commit/e46aaac66e281a4d28709168ad60a4b4d19d4fea))
+* keep refreshing a minimized window instead of misreading throttling as a wake ([#117](https://github.com/justb81/mountain-displaypad-pwa/issues/117)) ([99862d9](https://github.com/justb81/mountain-displaypad-pwa/commit/99862d929cefe405778757600a932117c1dfe104))
+
 ## [0.12.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.11.0...mountain-displaypad-v0.12.0) (2026-07-15)
 
 
