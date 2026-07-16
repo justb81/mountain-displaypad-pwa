@@ -104,8 +104,10 @@
 		: undefined}
 >
 	<header
-		class="app-header flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4
-			{windowChrome.visible ? 'flex-nowrap border-none bg-accent-strong px-3 py-0' : ''}"
+		class="app-header flex flex-wrap items-center justify-between gap-4
+			{windowChrome.visible
+				? 'flex-nowrap bg-accent-strong px-3 py-0'
+				: 'border-b border-line pb-4'}"
 		data-wco={windowChrome.visible}
 	>
 		<div class="flex min-w-0 items-center gap-3">
@@ -114,16 +116,21 @@
 					? 'h-7 w-7 bg-white/15 text-white'
 					: ''}"
 			>
-				<svg
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.75"
-					class="h-5 w-5"
-					aria-hidden="true"
-				>
-					<rect x="3" y="4" width="18" height="12" rx="2" />
-					<path d="M8 20h8M12 16v4" stroke-linecap="round" />
+				<!-- DisplayPad 6×2 key grid — matches static/pwa-icon.svg (the app icon/favicon).
+				     fill="currentColor" so it inherits the badge colour in both normal and WCO modes. -->
+				<svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true">
+					<rect x="2.1" y="8.9" width="2.8" height="2.8" rx="0.6" />
+					<rect x="5.5" y="8.9" width="2.8" height="2.8" rx="0.6" />
+					<rect x="8.9" y="8.9" width="2.8" height="2.8" rx="0.6" />
+					<rect x="12.3" y="8.9" width="2.8" height="2.8" rx="0.6" />
+					<rect x="15.7" y="8.9" width="2.8" height="2.8" rx="0.6" />
+					<rect x="19.1" y="8.9" width="2.8" height="2.8" rx="0.6" />
+					<rect x="2.1" y="12.3" width="2.8" height="2.8" rx="0.6" />
+					<rect x="5.5" y="12.3" width="2.8" height="2.8" rx="0.6" />
+					<rect x="8.9" y="12.3" width="2.8" height="2.8" rx="0.6" />
+					<rect x="12.3" y="12.3" width="2.8" height="2.8" rx="0.6" />
+					<rect x="15.7" y="12.3" width="2.8" height="2.8" rx="0.6" />
+					<rect x="19.1" y="12.3" width="2.8" height="2.8" rx="0.6" />
 				</svg>
 			</span>
 			<h1
