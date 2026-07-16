@@ -118,6 +118,11 @@ class Secrets {
 	private persist(): void {
 		if (!browser) return;
 		try {
+			// Storing secret values as plaintext is intentional and documented (see the file
+			// header): device-local scoping, not confidentiality. Encryption is deliberately
+			// out of scope here and tracked separately (issue #102), so the clear-text-storage
+			// alert on this line is an accepted risk.
+			// codeql[js/clear-text-storage-of-sensitive-data]
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries));
 			toast.dismissByKey(QUOTA_TOAST_KEY);
 		} catch (err) {
