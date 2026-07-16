@@ -289,7 +289,8 @@ class Connection {
 		if (face.type === 'image') {
 			// A data URL can be transiently empty between load and IndexedDB hydration
 			// (issue #102) — skip rather than rasterise a blank source into an error.
-			if (face.dataUrl) this.pad.setKeyImage(index, await rasterize(face.dataUrl, undefined, face.text));
+			if (face.dataUrl)
+				this.pad.setKeyImage(index, await rasterize(face.dataUrl, undefined, face.text));
 			return;
 		}
 		if (face.type === 'template' && face.transform && !keymap.scriptsApproved) {

@@ -202,7 +202,9 @@
 									</span>
 								</span>
 								<span class="flex flex-none gap-1.5">
-									<Button size="sm" onclick={() => void storage.restore(snapshot.id)}>Restore</Button>
+									<Button size="sm" onclick={() => void storage.restore(snapshot.id)}
+										>Restore</Button
+									>
 									<Button
 										size="sm"
 										variant="ghost"

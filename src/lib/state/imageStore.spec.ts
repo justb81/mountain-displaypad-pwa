@@ -121,7 +121,13 @@ describe('runGc', () => {
 
 describe('snapshots', () => {
 	it('stores, lists newest-first, and fetches a snapshot with its payload', async () => {
-		await putSnapshot({ createdAt: 100, reason: 'auto', label: 'old', data: { n: 1 }, imageIds: [] });
+		await putSnapshot({
+			createdAt: 100,
+			reason: 'auto',
+			label: 'old',
+			data: { n: 1 },
+			imageIds: []
+		});
 		await putSnapshot({
 			createdAt: 200,
 			reason: 'pre-import',

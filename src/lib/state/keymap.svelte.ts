@@ -362,8 +362,7 @@ class Keymap {
 			const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY_V1);
 			if (!legacyRaw) return;
 			const legacy = JSON.parse(legacyRaw) as
-				| KeyConfig[]
-				| { keys: KeyConfig[]; profileName?: string; profileImage?: string };
+				KeyConfig[] | { keys: KeyConfig[]; profileName?: string; profileImage?: string };
 			if (Array.isArray(legacy)) {
 				if (legacy.length === NUM_KEYS) this.pages = migratePages([legacy]);
 			} else if (Array.isArray(legacy.keys) && legacy.keys.length === NUM_KEYS) {
@@ -420,7 +419,9 @@ class Keymap {
 		scriptsApproved: boolean;
 	}): Promise<{ data: StoredKeymap; imageIds: string[] }> {
 		const pages = await Promise.all(
-			plain.pages.map((page) => Promise.all(page.map((c) => dehydrateConfig(c, imageStore.putImage))))
+			plain.pages.map((page) =>
+				Promise.all(page.map((c) => dehydrateConfig(c, imageStore.putImage)))
+			)
 		);
 		let profileImageId: string | undefined;
 		let profileImage: string | undefined;
