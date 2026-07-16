@@ -105,9 +105,7 @@
 >
 	<header
 		class="app-header flex flex-wrap items-center justify-between gap-4
-			{windowChrome.visible
-				? 'flex-nowrap bg-accent-strong px-3 py-0'
-				: 'border-b border-line pb-4'}"
+			{windowChrome.visible ? 'flex-nowrap bg-accent-strong px-3 py-0' : 'border-b border-line pb-4'}"
 		data-wco={windowChrome.visible}
 	>
 		<div class="flex min-w-0 items-center gap-3">
