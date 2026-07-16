@@ -90,7 +90,18 @@ export type KeyFace =
 	| { type: 'color'; color: string; text?: KeyTextStyle }
 	| {
 			type: 'image';
-			/** data URL of a square image, scaled to 102x102 on apply */ dataUrl: string;
+			/**
+			 * data URL of a square image, scaled to 102x102 on apply. Transiently empty
+			 * between load and IndexedDB hydration when the payload lives in the blob store
+			 * (issue #102); everything that renders/exports reads this once hydrated.
+			 */
+			dataUrl: string;
+			/**
+			 * Content-hash pointer into the IndexedDB image store. A persistence detail:
+			 * present on stored/unhydrated faces, stripped from exports (which inline
+			 * `dataUrl`). Absent for a freshly-authored, not-yet-persisted face.
+			 */
+			imageId?: string;
 			text?: KeyTextStyle;
 	  }
 	| {

@@ -17,6 +17,8 @@
  */
 
 import { browser } from '$app/environment';
+import { isQuotaExceeded, QUOTA_TOAST_KEY, QUOTA_TOAST_MESSAGE } from '$lib/state/storageQuota.js';
+import { toast } from '$lib/state/toast.svelte.js';
 
 const STORAGE_KEY = 'displaypad.secrets.v1';
 
@@ -114,7 +116,16 @@ class Secrets {
 	}
 
 	private persist(): void {
-		if (browser) localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries));
+		if (!browser) return;
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries));
+			toast.dismissByKey(QUOTA_TOAST_KEY);
+		} catch (err) {
+			if (isQuotaExceeded(err)) {
+				toast.push(QUOTA_TOAST_MESSAGE, 'error', { persistent: true, dedupeKey: QUOTA_TOAST_KEY });
+			}
+			// A non-quota storage failure is left to surface elsewhere; secrets stay in memory.
+		}
 	}
 }
 
