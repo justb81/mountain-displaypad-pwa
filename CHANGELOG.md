@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.13.0...mountain-displaypad-v0.13.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* refresh DisplayPad after standby regardless of app focus ([#123](https://github.com/justb81/mountain-displaypad-pwa/issues/123)) ([c684e15](https://github.com/justb81/mountain-displaypad-pwa/commit/c684e15221531267ea6e6dda2694e5d90f705b19))
+
 ## [0.13.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.12.1...mountain-displaypad-v0.13.0) (2026-07-16)
 
 
