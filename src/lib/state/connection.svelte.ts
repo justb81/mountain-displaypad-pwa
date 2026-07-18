@@ -252,7 +252,10 @@ class Connection {
 	 */
 	private onHidConnect = (event: HIDConnectionEvent): void => {
 		const { device } = event;
-		if (device.vendorId !== VENDOR_ID || !(PRODUCT_IDS as readonly number[]).includes(device.productId))
+		if (
+			device.vendorId !== VENDOR_ID ||
+			!(PRODUCT_IDS as readonly number[]).includes(device.productId)
+		)
 			return;
 		if (this.connectSettleTimer) clearTimeout(this.connectSettleTimer);
 		this.connectSettleTimer = setTimeout(() => {
