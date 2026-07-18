@@ -12,7 +12,13 @@ import { hexToRgb } from '$lib/displaypad/image.js';
 import { fetchRemoteFace } from '$lib/displaypad/liveface.js';
 import { rasterize, rasterizeColor } from '$lib/displaypad/raster.js';
 import { fetchTemplateFace } from '$lib/displaypad/template.js';
-import { BRIGHTNESS_LEVELS, NUM_KEYS, type BrightnessLevel } from '$lib/displaypad/protocol.js';
+import {
+	BRIGHTNESS_LEVELS,
+	NUM_KEYS,
+	PRODUCT_IDS,
+	VENDOR_ID,
+	type BrightnessLevel
+} from '$lib/displaypad/protocol.js';
 import { isLiveFace, type ConnectionStatus, type KeyAction } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
 import { secrets } from './secrets.svelte.js';
@@ -43,6 +49,13 @@ const STANDBY_TICK_MS = 15_000;
 const STANDBY_THRESHOLD_MS = 90_000;
 /** Wait this long before a single reconnect retry, in case USB isn't ready the instant we wake. */
 const RESUME_RETRY_MS = 1500;
+/**
+ * The pad is a composite device (three HID interfaces), so a re-enumeration after
+ * a wake fires up to three `connect` events in quick succession. Coalesce them and
+ * give the interfaces a moment to all reappear before reopening, so `fromGranted()`
+ * sees the whole device rather than a partial one.
+ */
+const HID_CONNECT_SETTLE_MS = 500;
 /** Some browsers report a blocked pop-up by closing it almost immediately rather than returning null. */
 const POPUP_CLOSE_CHECK_MS = 300;
 const POPUP_BLOCKED_MESSAGE =
@@ -67,6 +80,8 @@ class Connection {
 	/** Last webhook fire time per key, for the {@link WEBHOOK_MIN_INTERVAL_MS} rate-guard. */
 	private lastWebhookAt = new Map<number, number>();
 	private standbyTimer: ReturnType<typeof setInterval> | null = null;
+	/** Debounce coalescing the composite device's several `connect` events into one resume. */
+	private connectSettleTimer: ReturnType<typeof setTimeout> | null = null;
 	/** Wall-clock time of the last standby-watchdog tick, for gap detection. */
 	private lastTickAt = 0;
 	/** Guards {@link handleResume} against overlapping runs from back-to-back ticks. */
@@ -206,6 +221,12 @@ class Connection {
 	 * catches a suspend that happened while minimized without churning throughout.
 	 * Runs for the app's whole lifetime, even while disconnected, so a pad dropped
 	 * during sleep is reopened.
+	 *
+	 * The gap heuristic is a fallback: the primary, focus-independent wake signal is
+	 * WebHID's own `connect` event ({@link onHidConnect}). When the machine sleeps the
+	 * pad usually loses USB power and re-enumerates on wake, and that event fires
+	 * whether or not the tab is focused — so the pad is repainted right away instead
+	 * of staying dark until the app regains focus.
 	 */
 	private startStandbyWatchdog(): void {
 		this.lastTickAt = Date.now();
@@ -219,7 +240,26 @@ class Connection {
 			if (gap > STANDBY_THRESHOLD_MS) void this.handleResume();
 		}, STANDBY_TICK_MS);
 		document.addEventListener('visibilitychange', this.onVisibilityChange);
+		if (DisplayPad.isSupported()) navigator.hid.addEventListener('connect', this.onHidConnect);
 	}
+
+	/**
+	 * A DisplayPad HID interface (re)appeared. This is the focus-independent wake
+	 * signal: after standby the pad's USB power cycles and its interfaces re-enumerate,
+	 * firing this even while the tab is hidden. Coalesce the composite device's several
+	 * `connect` events, then resync the pad so it comes back fully painted without
+	 * waiting for the app to regain focus. Ignores unrelated HID devices.
+	 */
+	private onHidConnect = (event: HIDConnectionEvent): void => {
+		const { device } = event;
+		if (device.vendorId !== VENDOR_ID || !(PRODUCT_IDS as readonly number[]).includes(device.productId))
+			return;
+		if (this.connectSettleTimer) clearTimeout(this.connectSettleTimer);
+		this.connectSettleTimer = setTimeout(() => {
+			this.connectSettleTimer = null;
+			void this.handleResume();
+		}, HID_CONNECT_SETTLE_MS);
+	};
 
 	/**
 	 * On returning to a tab that was hidden long enough for the machine to have
@@ -238,9 +278,10 @@ class Connection {
 	/**
 	 * React to a detected wake from standby. Drops any handle that may be stale or
 	 * firmware-desynced after sleep, then silently reopens the previously-granted
-	 * pad from a clean INIT. Repainting the active page is left to
-	 * {@link openAndAttach}, which only applies when {@link autoApplyOnConnect} is
-	 * on — so a wake honours that toggle rather than forcing a repaint.
+	 * pad from a clean INIT and repaints every key. A wake leaves the pad's screens
+	 * dark, so — unlike a fresh connect, which honours {@link autoApplyOnConnect} —
+	 * a resume always pushes the faces back so the pad comes fully alive again
+	 * without the user having to focus the app.
 	 */
 	async handleResume(): Promise<void> {
 		if (!browser || this.status === 'unsupported' || this.status === 'connecting') return;
@@ -268,6 +309,10 @@ class Connection {
 				await new Promise((resolve) => setTimeout(resolve, RESUME_RETRY_MS));
 				await this.reconnect();
 			}
+			// Bring the (dark) pad fully back. When autoApplyOnConnect is on,
+			// openAndAttach already repainted during reconnect(), so only apply here
+			// when it didn't — a wake refreshes regardless of that toggle.
+			if (this.status === 'connected' && !this.#autoApplyOnConnect) await this.applyAll();
 		} finally {
 			this.resuming = false;
 		}
