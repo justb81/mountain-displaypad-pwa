@@ -32,12 +32,20 @@ import {
 	type BrightnessLevel
 } from './protocol.js';
 import { encodeImage, encodeSolidColor } from './image.js';
+import { AckWatchdog } from './ackWatchdog.js';
 import { debug } from '$lib/state/debug.svelte.js';
 
 const FILTERS: HIDDeviceFilter[] = PRODUCT_IDS.map((productId) => ({
 	vendorId: VENDOR_ID,
 	productId
 }));
+
+/**
+ * How long to wait for the firmware's ack to an announce/pixel transfer before
+ * treating the connection as desynced. A healthy pad acks in well under a second,
+ * so this is a generous ceiling that avoids false positives on a slow first paint.
+ */
+const ACK_TIMEOUT_MS = 5000;
 
 /** Wire-protocol tracing, toggled by the debug checkbox in the UI. */
 function debugLog(message: string, detail?: unknown): void {
@@ -90,9 +98,10 @@ interface PendingWrite {
 }
 
 /**
- * A connected DisplayPad. Emits `keydown` / `keyup` ({@link KeyEventDetail}) and
- * `close` events. Construct via {@link DisplayPad.request} or
- * {@link DisplayPad.fromGranted}, then `await pad.open()`.
+ * A connected DisplayPad. Emits `keydown` / `keyup` ({@link KeyEventDetail}),
+ * `close`, and `stale` (the firmware stopped acking — reopen from a clean INIT)
+ * events. Construct via {@link DisplayPad.request} or {@link DisplayPad.fromGranted},
+ * then `await pad.open()`.
  */
 export class DisplayPad extends EventTarget {
 	private control: HIDDevice;
@@ -102,6 +111,8 @@ export class DisplayPad extends EventTarget {
 	private initialized = false;
 	private queue: PendingWrite[] = [];
 	private keyState = new Array<boolean>(NUM_KEYS).fill(false);
+	/** Fires a `stale` event when the firmware stops acking (e.g. after a suspend). */
+	private readonly ack = new AckWatchdog(ACK_TIMEOUT_MS, () => this.onStale());
 
 	private constructor(devices: HIDDevice[]) {
 		super();
@@ -150,6 +161,7 @@ export class DisplayPad extends EventTarget {
 
 	/** Close every handle and detach listeners. */
 	async close(): Promise<void> {
+		this.ack.clear();
 		navigator.hid.removeEventListener('disconnect', this.onDisconnect);
 		for (const device of this.all) {
 			device.removeEventListener('inputreport', this.onInputReport);
@@ -204,6 +216,9 @@ export class DisplayPad extends EventTarget {
 		if (!next) return;
 		debugLog('announceNext: sending IMAGE_MESSAGE', { keyIndex: next.keyIndex });
 		await this.sendMessage(this.control, imageAnnounceMessage(next.keyIndex));
+		// Expect the pad to echo the announce (see onInputReport); if it never does
+		// the firmware has desynced (typically after a suspend) — treat it as stale.
+		this.ack.arm();
 	}
 
 	private async streamPixels(): Promise<void> {
@@ -221,6 +236,22 @@ export class DisplayPad extends EventTarget {
 			await this.write(this.display, 0x00, payload.subarray(offset, offset + CHUNK_SIZE));
 		}
 		debugLog('streamPixels: all chunks written', { keyIndex: next.keyIndex });
+		// Now await the transfer-complete ack; a silent firmware is caught here too.
+		this.ack.arm();
+	}
+
+	/**
+	 * The firmware stopped acking a pending write — after a suspend it resets and
+	 * ignores writes until re-INIT'd, with no error surfacing (sends are
+	 * fire-and-forget). Drop our now-meaningless queue/`initialized` state and emit
+	 * `stale` so the owner can reopen from a clean INIT. Handles aren't touched here;
+	 * that's the reopener's job.
+	 */
+	private onStale(): void {
+		debugLog('onStale: firmware stopped acking, signalling reopen');
+		this.initialized = false;
+		this.queue = [];
+		this.dispatchEvent(new Event('stale'));
 	}
 
 	private onDisconnect = (event: HIDConnectionEvent): void => {
@@ -241,6 +272,7 @@ export class DisplayPad extends EventTarget {
 			firstBytes: [...report.subarray(0, 8)]
 		});
 		if (report[0] === REPORT_ID.INIT_ACK) {
+			this.ack.clear();
 			this.initialized = true;
 			if (this.queue.length) void this.announceNext();
 			return;
@@ -248,8 +280,10 @@ export class DisplayPad extends EventTarget {
 		if (report[0] === REPORT_ID.IMAGE_ACK) {
 			// report[1]/report[2] follow the node-hid layout (reportId prepended).
 			if (report[1] === 0x00 && report[2] === 0x00) {
+				this.ack.clear(); // announce acked
 				void this.streamPixels(); // pad echoed the announce; pixels may flow
 			} else if (report[1] === 0x00 && report[2] === 0xff) {
+				this.ack.clear(); // transfer acked
 				this.queue.shift(); // transfer complete
 				void this.announceNext();
 			}
