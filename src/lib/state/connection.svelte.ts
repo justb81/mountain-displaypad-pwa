@@ -21,6 +21,7 @@ import {
 } from '$lib/displaypad/protocol.js';
 import { isLiveFace, type ConnectionStatus, type KeyAction } from '$lib/types.js';
 import { keymap } from './keymap.svelte.js';
+import { liveFaceIndices } from './liveFaces.js';
 import { secrets } from './secrets.svelte.js';
 
 const AUTO_APPLY_STORAGE_KEY = 'displaypad.autoApplyOnConnect.v1';
@@ -276,6 +277,10 @@ class Connection {
 		const gap = now - this.lastTickAt;
 		this.lastTickAt = now;
 		if (gap > STANDBY_THRESHOLD_MS) void this.handleResume();
+		// Below the suspend threshold the pad is still alive, but a live face may have
+		// gone stale while the tab's timers were throttled — repaint just those so the
+		// keys are fresh the moment the user returns, without a full reopen.
+		else if (this.status === 'connected') void this.applyLiveFaces();
 	};
 
 	/**
@@ -364,6 +369,15 @@ class Connection {
 	}
 
 	/**
+	 * Repaint only the keys whose currently-shown face is live (remote/template) —
+	 * the ones that can go stale. Color/image faces never change on their own, so
+	 * this avoids a needless full re-push (and network burst) on a cheap resync.
+	 */
+	private async applyLiveFaces(): Promise<void> {
+		for (const i of liveFaceIndices(keymap.keys, this.toggled)) await this.applyKey(i);
+	}
+
+	/**
 	 * Re-derive key `index`'s refresh timer from its current keymap config. Call
 	 * after editing a key's face so a changed/removed remote source and refresh
 	 * policy take effect immediately; a no-op while disconnected — timers are
@@ -398,7 +412,19 @@ class Connection {
 		pad.addEventListener('keydown', this.onKey);
 		pad.addEventListener('keyup', this.onKey);
 		pad.addEventListener('close', this.onClose);
+		pad.addEventListener('stale', this.onStale);
 	}
+
+	/**
+	 * The pad's firmware stopped acking (see {@link DisplayPad}) — typically after a
+	 * suspend that left the display dark and desynced. Reopen from a clean INIT and
+	 * repaint, focus-independently: because a live-face refresh timer fires this via
+	 * its own (throttled) tick, a minimized/hidden window recovers without the app
+	 * needing focus, and only on a genuine desync — no churn on a healthy pad.
+	 */
+	private onStale = (): void => {
+		void this.handleResume();
+	};
 
 	private onKey = (event: Event): void => {
 		const { key } = (event as CustomEvent<KeyEventDetail>).detail;
@@ -533,6 +559,7 @@ class Connection {
 			this.pad.removeEventListener('keydown', this.onKey);
 			this.pad.removeEventListener('keyup', this.onKey);
 			this.pad.removeEventListener('close', this.onClose);
+			this.pad.removeEventListener('stale', this.onStale);
 		}
 		this.pad = null;
 		this.pressed = Array(NUM_KEYS).fill(false);
