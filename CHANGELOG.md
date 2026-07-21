@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.13.1...mountain-displaypad-v0.13.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* recover live-face refresh without app focus ([#125](https://github.com/justb81/mountain-displaypad-pwa/issues/125)) ([815b389](https://github.com/justb81/mountain-displaypad-pwa/commit/815b38951dbafdd5c2eb0eaa577addd556185ed4))
+
 ## [0.13.1](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.13.0...mountain-displaypad-v0.13.1) (2026-07-18)
 
 
