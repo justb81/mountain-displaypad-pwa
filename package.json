@@ -44,7 +44,7 @@
 	},
 	"dependencies": {
 		"codejar": "^4.3.0",
-		"fast-xml-parser": "^5.9.3",
+		"fast-xml-parser": "^5.10.0",
 		"mustache": "^4.2.0",
 		"prismjs": "^1.30.0"
 	}
