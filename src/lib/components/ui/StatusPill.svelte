@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { ConnectionStatus } from '$lib/types.js';
-	import { windowChrome } from '$lib/state/windowChrome.svelte.js';
+	import type { ConnectionStatus } from '#lib/types.js';
+	import { windowChrome } from '#lib/state/windowChrome.svelte.js';
 
 	interface Props {
 		status: ConnectionStatus;

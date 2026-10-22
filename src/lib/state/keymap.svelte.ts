@@ -18,18 +18,18 @@
  * first paint. Exports inline the data URLs back, so an id never leaves the app.
  */
 
-import { browser } from '$app/environment';
-import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-import { migratePages, type KeyConfig } from '$lib/types.js';
+import { browser } from '$app/env';
+import { NUM_KEYS } from '#lib/displaypad/protocol.js';
+import { migratePages, type KeyConfig } from '#lib/types.js';
 import {
 	configImageIds,
 	dehydrateConfig,
 	hydrateConfig,
 	storedKeymapImageIds
-} from '$lib/state/imagePayloads.js';
-import * as imageStore from '$lib/state/imageStore.js';
-import { isQuotaExceeded, QUOTA_TOAST_KEY, QUOTA_TOAST_MESSAGE } from '$lib/state/storageQuota.js';
-import { toast } from '$lib/state/toast.svelte.js';
+} from '#lib/state/imagePayloads.js';
+import * as imageStore from '#lib/state/imageStore.js';
+import { isQuotaExceeded, QUOTA_TOAST_KEY, QUOTA_TOAST_MESSAGE } from '#lib/state/storageQuota.js';
+import { toast } from '#lib/state/toast.svelte.js';
 
 /** Whether any key on any page carries a `template` face with a (potentially untrusted) transform. */
 function pagesContainTransform(pages: KeyConfig[][]): boolean {
@@ -231,8 +231,10 @@ class Keymap {
 					page[i] = { ...page[i], action: { ...action, target: action.target - 1 } };
 			}
 		}
+
 		if (this.activePage >= this.pages.length) this.activePage = this.pages.length - 1;
 		else if (this.activePage > index) this.activePage -= 1;
+
 		this.pageHistory = this.pageHistory
 			.filter((page) => page !== index)
 			.map((page) => (page > index ? page - 1 : page));

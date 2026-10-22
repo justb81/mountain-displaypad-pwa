@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Button from './ui/Button.svelte';
-	import { connection } from '$lib/state/connection.svelte.js';
-	import { keymap } from '$lib/state/keymap.svelte.js';
-	import { toast } from '$lib/state/toast.svelte.js';
+	import { connection } from '#lib/state/connection.svelte.js';
+	import { keymap } from '#lib/state/keymap.svelte.js';
+	import { toast } from '#lib/state/toast.svelte.js';
 	import {
 		filterTemplates,
 		formatKeywords,
@@ -11,8 +11,8 @@
 		TEMPLATE_DRAG_MIME,
 		templates,
 		type Template
-	} from '$lib/state/templates.svelte.js';
-	import { actionBadge, faceBadge, TOGGLE_BADGE } from '$lib/ui/badges.js';
+	} from '#lib/state/templates.svelte.js';
+	import { actionBadge, faceBadge, TOGGLE_BADGE } from '#lib/ui/badges.js';
 
 	interface Props {
 		/** The currently selected key — "Apply" pushes a template onto this slot. */
