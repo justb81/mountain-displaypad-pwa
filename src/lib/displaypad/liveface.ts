@@ -10,7 +10,7 @@
 
 import { ICON_SIZE } from './protocol.js';
 import { rasterize } from './raster.js';
-import type { KeyTextStyle } from '$lib/types.js';
+import type { KeyTextStyle } from '#lib/types.js';
 
 /** Fetch `url`, sniff its content type, and rasterise the result (with an optional text overlay) to `size`x`size`. */
 export async function fetchRemoteFace(

@@ -6,20 +6,20 @@
  * Browser-only: every method is a no-op or throws off the main thread during SSR.
  */
 
-import { browser } from '$app/environment';
-import { DisplayPad, type KeyEventDetail } from '$lib/displaypad/device.js';
-import { hexToRgb } from '$lib/displaypad/image.js';
-import { fetchRemoteFace } from '$lib/displaypad/liveface.js';
-import { rasterize, rasterizeColor } from '$lib/displaypad/raster.js';
-import { fetchTemplateFace } from '$lib/displaypad/template.js';
+import { browser } from '$app/env';
+import { DisplayPad, type KeyEventDetail } from '#lib/displaypad/device.js';
+import { hexToRgb } from '#lib/displaypad/image.js';
+import { fetchRemoteFace } from '#lib/displaypad/liveface.js';
+import { rasterize, rasterizeColor } from '#lib/displaypad/raster.js';
+import { fetchTemplateFace } from '#lib/displaypad/template.js';
 import {
 	BRIGHTNESS_LEVELS,
 	NUM_KEYS,
 	PRODUCT_IDS,
 	VENDOR_ID,
 	type BrightnessLevel
-} from '$lib/displaypad/protocol.js';
-import { isLiveFace, type ConnectionStatus, type KeyAction } from '$lib/types.js';
+} from '#lib/displaypad/protocol.js';
+import { isLiveFace, type ConnectionStatus, type KeyAction } from '#lib/types.js';
 import { keymap } from './keymap.svelte.js';
 import { liveFaceIndices } from './liveFaces.js';
 import { secrets } from './secrets.svelte.js';
@@ -276,11 +276,12 @@ class Connection {
 		const now = Date.now();
 		const gap = now - this.lastTickAt;
 		this.lastTickAt = now;
+
 		if (gap > STANDBY_THRESHOLD_MS) void this.handleResume();
-		// Below the suspend threshold the pad is still alive, but a live face may have
+		else // Below the suspend threshold the pad is still alive, but a live face may have
 		// gone stale while the tab's timers were throttled — repaint just those so the
 		// keys are fresh the moment the user returns, without a full reopen.
-		else if (this.status === 'connected') void this.applyLiveFaces();
+		if (this.status === 'connected') void this.applyLiveFaces();
 	};
 
 	/**

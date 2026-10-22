@@ -11,7 +11,7 @@
  * The pure quota/size helpers live in `storageQuota.ts`.
  */
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 const DB_NAME = 'displaypad-storage';
 const DB_VERSION = 1;

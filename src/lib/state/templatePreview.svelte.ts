@@ -8,10 +8,10 @@
  * double as this store's dependency tracking.
  */
 
-import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-import { pixelsToDataUrl } from '$lib/displaypad/raster.js';
-import { fetchTemplateFace } from '$lib/displaypad/template.js';
-import type { KeyFace } from '$lib/types.js';
+import { NUM_KEYS } from '#lib/displaypad/protocol.js';
+import { pixelsToDataUrl } from '#lib/displaypad/raster.js';
+import { fetchTemplateFace } from '#lib/displaypad/template.js';
+import type { KeyFace } from '#lib/types.js';
 
 /** Refuse to auto-refresh a preview more often than this, however small `refreshMinutes` is set. */
 const MIN_REFRESH_MINUTES = 1;

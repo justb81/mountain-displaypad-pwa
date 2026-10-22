@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { KeyConfig } from '$lib/types.js';
+import type { KeyConfig } from '#lib/types.js';
 import { keymap } from './keymap.svelte.js';
 
 function config(label: string): KeyConfig {

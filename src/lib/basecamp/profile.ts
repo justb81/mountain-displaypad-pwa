@@ -12,9 +12,9 @@
  */
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
-import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-import { faceText, withFaceText } from '$lib/types.js';
-import type { KeyAction, KeyConfig, KeyFace, KeyTextStyle, TextAlign } from '$lib/types.js';
+import { NUM_KEYS } from '#lib/displaypad/protocol.js';
+import { faceText, withFaceText } from '#lib/types.js';
+import type { KeyAction, KeyConfig, KeyFace, KeyTextStyle, TextAlign } from '#lib/types.js';
 
 /** Result of importing a Base Camp profile: every page plus what didn't survive. */
 export interface BasecampImportResult {

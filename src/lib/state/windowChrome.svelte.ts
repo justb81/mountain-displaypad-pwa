@@ -6,7 +6,7 @@
  * reactively instead of branching once on load.
  */
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 interface TitlebarRect {
 	x: number;

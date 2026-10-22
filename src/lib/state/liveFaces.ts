@@ -1,4 +1,4 @@
-import { isLiveFace, type KeyConfig } from '$lib/types.js';
+import { isLiveFace, type KeyConfig } from '#lib/types.js';
 
 /**
  * Indices of the keys whose *currently shown* face is live (remote/template).

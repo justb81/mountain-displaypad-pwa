@@ -15,8 +15,8 @@
 	import Button from './ui/Button.svelte';
 	import Hint from './ui/Hint.svelte';
 	import SegmentedControl from './ui/SegmentedControl.svelte';
-	import { removeImageBackground } from '$lib/displaypad/raster.js';
-	import { faceText, withFaceText, type KeyFace, type KeyTextStyle } from '$lib/types.js';
+	import { removeImageBackground } from '#lib/displaypad/raster.js';
+	import { faceText, withFaceText, type KeyFace, type KeyTextStyle } from '#lib/types.js';
 
 	interface Props {
 		/** Unique radio-group name, so the primary and second-face pickers don't collide. */

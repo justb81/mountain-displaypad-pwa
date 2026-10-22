@@ -8,7 +8,7 @@
  * browser API. The stores wire in the real `imageStore` calls.
  */
 
-import type { KeyConfig, KeyFace, KeyTextStyle } from '$lib/types.js';
+import type { KeyConfig, KeyFace, KeyTextStyle } from '#lib/types.js';
 
 /** Stores a data URL and resolves to its content-hash id. */
 export type PutImage = (dataUrl: string) => Promise<string>;

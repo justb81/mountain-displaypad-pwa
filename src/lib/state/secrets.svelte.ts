@@ -16,7 +16,7 @@
  * singleton touches `localStorage` (guarded by `browser`, like the other stores).
  */
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 const STORAGE_KEY = 'displaypad.secrets.v1';
 
