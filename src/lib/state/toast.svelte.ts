@@ -1,6 +1,6 @@
 /** Transient, app-wide success/error/info notifications — never persisted. */
 
-import { browser } from '$app/env';
+import { browser } from '$app/environment';
 
 export type ToastKind = 'success' | 'error' | 'info';
 
