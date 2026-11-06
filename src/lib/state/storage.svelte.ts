@@ -8,11 +8,11 @@
  * the main thread. Pure size/quota formatting lives in `storageQuota.ts`.
  */
 
-import { browser } from '$app/environment';
-import * as imageStore from '$lib/state/imageStore.js';
-import { keymap } from '$lib/state/keymap.svelte.js';
-import { byteLength } from '$lib/state/storageQuota.js';
-import { toast } from '$lib/state/toast.svelte.js';
+import { browser } from '$app/env';
+import * as imageStore from '#lib/state/imageStore.js';
+import { keymap } from '#lib/state/keymap.svelte.js';
+import { byteLength } from '#lib/state/storageQuota.js';
+import { toast } from '#lib/state/toast.svelte.js';
 
 const KEYMAP_KEY = 'displaypad.keymap.v2';
 const TEMPLATES_KEY = 'displaypad.templates.v1';

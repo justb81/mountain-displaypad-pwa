@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Button from './ui/Button.svelte';
 	import Hint from './ui/Hint.svelte';
-	import { isValidSecretKey, secrets, type SecretEntry } from '$lib/state/secrets.svelte.js';
-	import { toast } from '$lib/state/toast.svelte.js';
+	import { isValidSecretKey, secrets, type SecretEntry } from '#lib/state/secrets.svelte.js';
+	import { toast } from '#lib/state/toast.svelte.js';
 
 	interface Props {
 		open: boolean;

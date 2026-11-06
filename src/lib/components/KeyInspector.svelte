@@ -2,13 +2,13 @@
 	import Button from './ui/Button.svelte';
 	import Hint from './ui/Hint.svelte';
 	import FaceEditor from './FaceEditor.svelte';
-	import { connection } from '$lib/state/connection.svelte.js';
-	import { NUM_KEYS } from '$lib/displaypad/protocol.js';
-	import { fetchFaviconDataUrl, hostnameFrom } from '$lib/displaypad/favicon.js';
-	import { keymap } from '$lib/state/keymap.svelte.js';
-	import { templates } from '$lib/state/templates.svelte.js';
-	import { toast } from '$lib/state/toast.svelte.js';
-	import { faceText, type KeyAction, type KeyFace } from '$lib/types.js';
+	import { connection } from '#lib/state/connection.svelte.js';
+	import { NUM_KEYS } from '#lib/displaypad/protocol.js';
+	import { fetchFaviconDataUrl, hostnameFrom } from '#lib/displaypad/favicon.js';
+	import { keymap } from '#lib/state/keymap.svelte.js';
+	import { templates } from '#lib/state/templates.svelte.js';
+	import { toast } from '#lib/state/toast.svelte.js';
+	import { faceText, type KeyAction, type KeyFace } from '#lib/types.js';
 
 	interface Props {
 		index: number;

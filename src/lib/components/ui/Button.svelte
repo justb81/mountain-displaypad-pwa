@@ -34,9 +34,9 @@
 <button
 	{type}
 	{...rest}
-	class="focus-visible:outline-accent inline-flex items-center justify-center gap-1.5 rounded-control font-medium whitespace-nowrap transition
-		disabled:cursor-not-allowed disabled:opacity-40
-		focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+	class="inline-flex items-center justify-center gap-1.5 rounded-control font-medium whitespace-nowrap transition focus-visible:outline
+		focus-visible:outline-2 focus-visible:outline-offset-2
+		focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40
 		{sizeClass} {variantClass} {extraClass}"
 >
 	{@render children?.()}

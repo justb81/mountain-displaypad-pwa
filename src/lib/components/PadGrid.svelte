@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { NUM_KEYS_PER_ROW } from '$lib/displaypad/protocol.js';
-	import { planFromDrop, type DropInput, type DropPlan } from '$lib/displaypad/drop.js';
-	import { connection } from '$lib/state/connection.svelte.js';
-	import { keymap } from '$lib/state/keymap.svelte.js';
-	import { templates } from '$lib/state/templates.svelte.js';
-	import { toast } from '$lib/state/toast.svelte.js';
-	import type { KeyFace } from '$lib/types.js';
+	import { NUM_KEYS_PER_ROW } from '#lib/displaypad/protocol.js';
+	import { planFromDrop, type DropInput, type DropPlan } from '#lib/displaypad/drop.js';
+	import { connection } from '#lib/state/connection.svelte.js';
+	import { keymap } from '#lib/state/keymap.svelte.js';
+	import { templates } from '#lib/state/templates.svelte.js';
+	import { toast } from '#lib/state/toast.svelte.js';
+	import type { KeyFace } from '#lib/types.js';
 	import PadKey from './PadKey.svelte';
 
 	interface Props {

@@ -7,7 +7,7 @@
  * asks the stash to show "Face and Action type (icons like on the keypad)".
  */
 
-import type { KeyAction, KeyFace } from '$lib/types.js';
+import type { KeyAction, KeyFace } from '#lib/types.js';
 
 /** A glyph + its accessible label, rendered as a small chip in the UI. */
 export interface Badge {

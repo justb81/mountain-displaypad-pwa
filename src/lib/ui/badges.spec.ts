@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { KeyAction, KeyFace } from '$lib/types.js';
+import type { KeyAction, KeyFace } from '#lib/types.js';
 import { actionBadge, faceBadge, TOGGLE_BADGE } from './badges.js';
 
 describe('actionBadge', () => {

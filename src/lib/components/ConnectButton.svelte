@@ -2,8 +2,8 @@
 	import Button from './ui/Button.svelte';
 	import Hint from './ui/Hint.svelte';
 	import StatusPill from './ui/StatusPill.svelte';
-	import { connection } from '$lib/state/connection.svelte.js';
-	import { windowChrome } from '$lib/state/windowChrome.svelte.js';
+	import { connection } from '#lib/state/connection.svelte.js';
+	import { windowChrome } from '#lib/state/windowChrome.svelte.js';
 
 	const label = $derived(
 		{

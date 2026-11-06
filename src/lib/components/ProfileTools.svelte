@@ -1,12 +1,12 @@
 <script lang="ts">
 	import Button from './ui/Button.svelte';
-	import { parseBasecampProfile, serializeBasecampProfile } from '$lib/basecamp/profile.js';
-	import { debug } from '$lib/state/debug.svelte.js';
-	import { keymap } from '$lib/state/keymap.svelte.js';
-	import { storage } from '$lib/state/storage.svelte.js';
-	import { formatBytes } from '$lib/state/storageQuota.js';
-	import { toast } from '$lib/state/toast.svelte.js';
-	import type { SnapshotMeta, SnapshotReason } from '$lib/state/imageStore.js';
+	import { parseBasecampProfile, serializeBasecampProfile } from '#lib/basecamp/profile.js';
+	import { debug } from '#lib/state/debug.svelte.js';
+	import { keymap } from '#lib/state/keymap.svelte.js';
+	import { storage } from '#lib/state/storage.svelte.js';
+	import { formatBytes } from '#lib/state/storageQuota.js';
+	import { toast } from '#lib/state/toast.svelte.js';
+	import type { SnapshotMeta, SnapshotReason } from '#lib/state/imageStore.js';
 
 	let fileInput: HTMLInputElement;
 	let warnings = $state<string[]>([]);
