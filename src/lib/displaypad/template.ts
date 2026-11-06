@@ -12,7 +12,7 @@
 import { ICON_SIZE } from './protocol.js';
 import { rasterize } from './raster.js';
 import { runTransform } from './sandbox.js';
-import type { KeyFace } from '$lib/types.js';
+import type { KeyFace } from '#lib/types.js';
 
 type TemplateFace = Extract<KeyFace, { type: 'template' }>;
 

@@ -13,23 +13,23 @@
  * stored JSON references them by id and exports inline the data back.
  */
 
-import { browser } from '$app/environment';
-import { downscaleToDataUrl, pixelsToDataUrl } from '$lib/displaypad/raster.js';
-import { fetchTemplateFace } from '$lib/displaypad/template.js';
+import { browser } from '$app/env';
+import { downscaleToDataUrl, pixelsToDataUrl } from '#lib/displaypad/raster.js';
+import { fetchTemplateFace } from '#lib/displaypad/template.js';
 import {
 	configImageIds,
 	dehydrateConfig,
 	hydrateConfig,
 	inlineConfig,
 	storedStashImageIds
-} from '$lib/state/imagePayloads.js';
-import * as imageStore from '$lib/state/imageStore.js';
-import { keymap } from '$lib/state/keymap.svelte.js';
-import { secrets } from '$lib/state/secrets.svelte.js';
-import { coerceKeywords, parseKeywords, type Template } from '$lib/state/templateStash.js';
-import { isQuotaExceeded, QUOTA_TOAST_KEY, QUOTA_TOAST_MESSAGE } from '$lib/state/storageQuota.js';
-import { toast } from '$lib/state/toast.svelte.js';
-import { migrateKeyConfig, type KeyConfig, type KeyFace } from '$lib/types.js';
+} from '#lib/state/imagePayloads.js';
+import * as imageStore from '#lib/state/imageStore.js';
+import { keymap } from '#lib/state/keymap.svelte.js';
+import { secrets } from '#lib/state/secrets.svelte.js';
+import { coerceKeywords, parseKeywords, type Template } from '#lib/state/templateStash.js';
+import { isQuotaExceeded, QUOTA_TOAST_KEY, QUOTA_TOAST_MESSAGE } from '#lib/state/storageQuota.js';
+import { toast } from '#lib/state/toast.svelte.js';
+import { migrateKeyConfig, type KeyConfig, type KeyFace } from '#lib/types.js';
 
 // Re-exported so the stash UI and tests can import the whole template stash surface from one module.
 export {
@@ -39,7 +39,7 @@ export {
 	parseKeywords,
 	type Template,
 	type TemplateGroup
-} from '$lib/state/templateStash.js';
+} from '#lib/state/templateStash.js';
 
 const STORAGE_KEY = 'displaypad.templates.v1';
 
@@ -110,6 +110,7 @@ function isKeyConfigLike(value: unknown): value is KeyConfig {
 	const config = value as Record<string, unknown>;
 	const face = config.face as Record<string, unknown> | undefined;
 	const action = config.action as Record<string, unknown> | undefined;
+
 	return (
 		typeof config.label === 'string' &&
 		!!face &&

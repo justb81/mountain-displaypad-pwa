@@ -5,7 +5,7 @@
 
 import { ICON_SIZE } from './protocol.js';
 import { removeBackground, type RemoveBackgroundOptions } from './image.js';
-import type { KeyTextStyle } from '$lib/types.js';
+import type { KeyTextStyle } from '#lib/types.js';
 
 const DEFAULT_TEXT_FONT_FAMILY = 'Arial, sans-serif';
 const DEFAULT_TEXT_FONT_SIZE = 14;

@@ -5,7 +5,7 @@
  * `service-worker.ts` for why the worker doesn't just take over on its own.
  */
 
-import { browser, dev } from '$app/environment';
+import { browser, dev } from '$app/env';
 
 /** How often to poll for a new service-worker version while the tab stays open. */
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;

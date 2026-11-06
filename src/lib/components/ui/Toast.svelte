@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { toast } from '$lib/state/toast.svelte.js';
+	import { toast } from '#lib/state/toast.svelte.js';
 
 	const toneClass: Record<string, string> = {
 		success: 'border-success/40 bg-emerald-950/90 text-success',

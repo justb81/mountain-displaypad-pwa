@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { keymap } from '$lib/state/keymap.svelte.js';
-	import { secrets } from '$lib/state/secrets.svelte.js';
-	import { templatePreview } from '$lib/state/templatePreview.svelte.js';
-	import { KEY_DRAG_MIME, TEMPLATE_DRAG_MIME } from '$lib/state/templates.svelte.js';
-	import { actionBadge, faceBadge, TOGGLE_BADGE } from '$lib/ui/badges.js';
-	import type { DropInput } from '$lib/displaypad/drop.js';
-	import type { KeyConfig } from '$lib/types.js';
+	import { keymap } from '#lib/state/keymap.svelte.js';
+	import { secrets } from '#lib/state/secrets.svelte.js';
+	import { templatePreview } from '#lib/state/templatePreview.svelte.js';
+	import { KEY_DRAG_MIME, TEMPLATE_DRAG_MIME } from '#lib/state/templates.svelte.js';
+	import { actionBadge, faceBadge, TOGGLE_BADGE } from '#lib/ui/badges.js';
+	import type { DropInput } from '#lib/displaypad/drop.js';
+	import type { KeyConfig } from '#lib/types.js';
 
 	interface Props {
 		index: number;

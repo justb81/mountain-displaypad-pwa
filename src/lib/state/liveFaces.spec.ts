@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { liveFaceIndices } from './liveFaces.js';
-import type { KeyConfig, KeyFace } from '$lib/types.js';
+import type { KeyConfig, KeyFace } from '#lib/types.js';
 
 const color = (): KeyFace => ({ type: 'color', color: '#000000' });
 const image = (): KeyFace => ({ type: 'image', dataUrl: '' });

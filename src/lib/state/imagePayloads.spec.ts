@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { KeyConfig, KeyFace } from '$lib/types.js';
+import type { KeyConfig, KeyFace } from '#lib/types.js';
 import {
 	configImageIds,
 	dehydrateConfig,

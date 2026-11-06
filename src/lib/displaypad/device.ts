@@ -33,7 +33,7 @@ import {
 } from './protocol.js';
 import { encodeImage, encodeSolidColor } from './image.js';
 import { AckWatchdog } from './ackWatchdog.js';
-import { debug } from '$lib/state/debug.svelte.js';
+import { debug } from '#lib/state/debug.svelte.js';
 
 const FILTERS: HIDDeviceFilter[] = PRODUCT_IDS.map((productId) => ({
 	vendorId: VENDOR_ID,
