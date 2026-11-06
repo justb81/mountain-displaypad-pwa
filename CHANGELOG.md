@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.13.2...mountain-displaypad-v0.14.0) (2026-11-06)
+
+
+### Features
+
+* add reverse-engineering report for Mountain DisplayPad BaseCamp protocol and update gitignore ([#155](https://github.com/justb81/mountain-displaypad-pwa/issues/155)) ([2d3fcae](https://github.com/justb81/mountain-displaypad-pwa/commit/2d3fcae600d339c92ad8df7dc7c55e27a36e7406))
+
+
+### Bug Fixes
+
+* revert accidental downgrade of SvelteKit 3 codebase from commit 2d3fcae ([#157](https://github.com/justb81/mountain-displaypad-pwa/issues/157)) ([91ecad2](https://github.com/justb81/mountain-displaypad-pwa/commit/91ecad2e72024a942e9a80d77ca011b091829eab))
+
 ## [0.13.2](https://github.com/justb81/mountain-displaypad-pwa/compare/mountain-displaypad-v0.13.1...mountain-displaypad-v0.13.2) (2026-07-21)
 
 
